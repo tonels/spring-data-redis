@@ -25,6 +25,7 @@ import io.lettuce.core.masterslave.StatefulRedisMasterSlaveConnection;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import org.springframework.lang.Nullable;
 
@@ -77,5 +78,10 @@ class StaticMasterSlaveConnectionProvider implements LettuceConnectionProvider {
 		}
 
 		throw new UnsupportedOperationException(String.format("Connection type %s not supported!", connectionType));
+	}
+
+	@Override
+	public <T extends StatefulConnection<?, ?>> CompletionStage<T> getConnectionAsync(Class<T> connectionType) {
+		return MasterSlave.connectAsync(client, codec, nodes).thenApply(connectionType::cast);
 	}
 }

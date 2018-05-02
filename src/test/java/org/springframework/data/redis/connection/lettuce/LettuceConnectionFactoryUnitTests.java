@@ -592,7 +592,7 @@ public class LettuceConnectionFactoryUnitTests {
 
 		RedisClusterClient clientMock = mock(RedisClusterClient.class);
 		StatefulRedisClusterConnection<byte[], byte[]> connectionMock = mock(StatefulRedisClusterConnection.class);
-		when(clientMock.connect(ByteArrayCodec.INSTANCE)).thenReturn(connectionMock);
+		when(clientMock.connectAsync(ByteArrayCodec.INSTANCE)).thenReturn(CompletableFuture.completedFuture(connectionMock));
 
 		LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(clusterConfig,
 				LettuceClientConfiguration.defaultConfiguration()) {
@@ -610,7 +610,7 @@ public class LettuceConnectionFactoryUnitTests {
 		connectionFactory.getClusterConnection().close();
 		connectionFactory.getClusterConnection().close();
 
-		verify(clientMock).connect(ArgumentMatchers.any(RedisCodec.class));
+		verify(clientMock).connectAsync(ArgumentMatchers.any(RedisCodec.class));
 	}
 
 	@Test // DATAREDIS-721

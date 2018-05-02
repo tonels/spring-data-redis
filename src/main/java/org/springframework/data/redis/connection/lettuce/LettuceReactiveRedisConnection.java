@@ -337,7 +337,7 @@ class LettuceReactiveRedisConnection implements ReactiveRedisConnection {
 	 * @author Christoph Strobl
 	 * @since 2.0.1
 	 */
-	static class AsyncConnect<T extends StatefulConnection<?, ?>> {
+	static class AsyncConnect<T extends io.lettuce.core.api.StatefulConnection<?, ?>> {
 
 		private final Mono<T> connectionPublisher;
 		private final LettuceConnectionProvider connectionProvider;
@@ -353,7 +353,7 @@ class LettuceReactiveRedisConnection implements ReactiveRedisConnection {
 			this.connectionProvider = connectionProvider;
 
 			Mono<StatefulConnection> defer = Mono
-					.defer(() -> Mono.fromCompletionStage(connectionProvider.getConnectionAsync(StatefulConnection.class)));
+					.defer(() -> Mono.fromCompletionStage(connectionProvider.getConnectionAsync(connectionType)));
 
 			this.connectionPublisher = defer.map(it -> (StatefulConnection<ByteBuffer, ByteBuffer>) it).doOnNext(it -> {
 
@@ -370,7 +370,7 @@ class LettuceReactiveRedisConnection implements ReactiveRedisConnection {
 							throw new IllegalStateException("Unable to connect. Connection is closed!");
 						}
 
-						return it;
+						return (T) it;
 					});
 		}
 
