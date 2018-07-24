@@ -16,13 +16,10 @@
 package org.springframework.data.redis.connection.lettuce;
 
 import io.lettuce.core.Range;
-import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.ScanStream;
 import io.lettuce.core.ScoredValue;
 import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.ZStoreArgs;
-import io.lettuce.core.codec.StringCodec;
-import io.lettuce.core.protocol.LettuceCharsets;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +27,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.reactivestreams.Publisher;
-import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.redis.connection.DefaultTuple;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.CommandResponse;
@@ -44,7 +40,6 @@ import org.springframework.data.redis.util.ByteUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Christoph Strobl
@@ -519,57 +514,5 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 
 	protected LettuceReactiveRedisConnection getConnection() {
 		return connection;
-	}
-
-	/**
-	 * @author Christoph Strobl
-	 * @author Mark Paluch
-	 */
-	private static class ArgumentConverters {
-
-		static <T> Range<T> toRange(org.springframework.data.domain.Range<?> range) {
-			return Range.from(lowerBoundArgOf(range), upperBoundArgOf(range));
-		}
-
-		@SuppressWarnings("unchecked")
-		static <T> Boundary<T> lowerBoundArgOf(org.springframework.data.domain.Range<?> range) {
-			return (Boundary<T>) rangeToBoundArgumentConverter(false).convert(range);
-		}
-
-		@SuppressWarnings("unchecked")
-		static <T> Boundary<T> upperBoundArgOf(org.springframework.data.domain.Range<?> range) {
-			return (Boundary<T>) rangeToBoundArgumentConverter(true).convert(range);
-		}
-
-		private static Converter<org.springframework.data.domain.Range<?>, Boundary<?>> rangeToBoundArgumentConverter(
-				Boolean upper) {
-
-			return (source) -> {
-				Boolean inclusive = upper ? source.getUpperBound().isInclusive() : source.getLowerBound().isInclusive();
-				Object value = upper ? LettuceConverters.getUpperBound(source).orElse(null)
-						: LettuceConverters.getLowerBound(source).orElse(null);
-
-				if (value == null) {
-					return Boundary.unbounded();
-				}
-
-				if (value instanceof Number) {
-					return inclusive ? Boundary.including((Number) value) : Boundary.excluding((Number) value);
-				}
-
-				if (value instanceof String) {
-
-					StringCodec stringCodec = new StringCodec(LettuceCharsets.UTF8);
-					if (!StringUtils.hasText((String) value) || ObjectUtils.nullSafeEquals(value, "+")
-							|| ObjectUtils.nullSafeEquals(value, "-")) {
-						return Boundary.unbounded();
-					}
-					return inclusive ? Boundary.including(stringCodec.encodeValue((String) value))
-							: Boundary.excluding(stringCodec.encodeValue((String) value));
-				}
-
-				return inclusive ? Boundary.including((ByteBuffer) value) : Boundary.excluding((ByteBuffer) value);
-			};
-		}
 	}
 }
