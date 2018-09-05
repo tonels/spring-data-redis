@@ -33,21 +33,25 @@ import org.springframework.util.StringUtils;
 class ArgumentConverters {
 
 	static <T> Range<T> toRange(org.springframework.data.domain.Range<?> range) {
-		return Range.from(lowerBoundArgOf(range), upperBoundArgOf(range));
+		return toRange(range, true);
+	}
+
+	static <T> Range<T> toRange(org.springframework.data.domain.Range<?> range, boolean applyEncoding) {
+		return Range.from(lowerBoundArgOf(range, applyEncoding), upperBoundArgOf(range, applyEncoding));
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T> Boundary<T> lowerBoundArgOf(org.springframework.data.domain.Range<?> range) {
-		return (Boundary<T>) rangeToBoundArgumentConverter(false).convert(range);
+	static <T> Boundary<T> lowerBoundArgOf(org.springframework.data.domain.Range<?> range, boolean applyEncoding) {
+		return (Boundary<T>) rangeToBoundArgumentConverter(false, applyEncoding).convert(range);
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T> Boundary<T> upperBoundArgOf(org.springframework.data.domain.Range<?> range) {
-		return (Boundary<T>) rangeToBoundArgumentConverter(true).convert(range);
+	static <T> Boundary<T> upperBoundArgOf(org.springframework.data.domain.Range<?> range, boolean applyEncoding) {
+		return (Boundary<T>) rangeToBoundArgumentConverter(true, applyEncoding).convert(range);
 	}
 
 	private static Converter<org.springframework.data.domain.Range<?>, Boundary<?>> rangeToBoundArgumentConverter(
-			Boolean upper) {
+			boolean upper, boolean applyEncoding) {
 
 		return (source) -> {
 
@@ -66,8 +70,13 @@ class ArgumentConverters {
 						|| ObjectUtils.nullSafeEquals(value, "-")) {
 					return Boundary.unbounded();
 				}
-				return inclusive ? Boundary.including(stringCodec.encodeValue((String) value))
+
+				if (applyEncoding) {
+					return inclusive ? Boundary.including(stringCodec.encodeValue((String) value))
 						: Boundary.excluding(stringCodec.encodeValue((String) value));
+				}
+
+				return inclusive ? Boundary.including(value) : Boundary.excluding(value);
 			}
 
 			if (value == null) {
