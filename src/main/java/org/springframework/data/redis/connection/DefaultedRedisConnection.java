@@ -433,7 +433,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default Long xAck(byte[] key, byte[] group, String... messageIds) {
+	default Long xAck(byte[] key, String group, String... messageIds) {
 		return streamCommands().xAck(key, group, messageIds);
 	}
 

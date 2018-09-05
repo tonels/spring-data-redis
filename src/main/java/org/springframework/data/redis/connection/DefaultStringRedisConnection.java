@@ -3608,16 +3608,16 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		delegate.migrate(key, target, dbIndex, option, timeout);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xAck(java.lang.String, java.lang.String, java.lang.String[])
 	 */
 	@Override
 	public Long xAck(String key, String group, String... messageIds) {
-		return convertAndReturn(delegate.xAck(this.serialize(key), this.serialize(group), messageIds), identityConverter);
+		return convertAndReturn(delegate.xAck(this.serialize(key), group, messageIds), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xAdd(java.lang.String, java.util.Map)
 	 */
@@ -3626,7 +3626,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xAdd(serialize(key), serialize(body)), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xDel(java.lang.String, java.lang.String[])
 	 */
@@ -3635,7 +3635,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xDel(serialize(key), messageIds), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xGroupCreate(java.lang.String, org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset, java.lang.String)
 	 */
@@ -3644,7 +3644,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xGroupCreate(serialize(key), readOffset, group), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xGroupDelConsumer(java.lang.String, org.springframework.data.redis.connection.RedisStreamCommands.Consumer)
 	 */
@@ -3653,7 +3653,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xGroupDelConsumer(serialize(key), consumer), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xGroupDestroy(java.lang.String, java.lang.String)
 	 */
@@ -3662,7 +3662,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xGroupDestroy(serialize(key), group), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xLen(java.lang.String)
 	 */
@@ -3671,7 +3671,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xLen(serialize(key)), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xRange(java.lang.String, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -3683,7 +3683,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 				byteStreamMessageListToStringStreamMessageConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xReadAsString(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -3694,7 +3694,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 				byteStreamMessageListToStringStreamMessageConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xReadGroupAsString(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -3706,7 +3706,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 				byteStreamMessageListToStringStreamMessageConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xRevRange(java.lang.String, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -3718,7 +3718,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 				byteStreamMessageListToStringStreamMessageConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xTrim(java.lang.String, long)
 	 */
@@ -3727,16 +3727,16 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return convertAndReturn(delegate.xTrim(serialize(key), count), identityConverter);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAck(byte[], byte[], java.lang.String[])
+	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAck(byte[], java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Long xAck(byte[] key, byte[] group, String... messageIds) {
+	public Long xAck(byte[] key, String group, String... messageIds) {
 		return delegate.xAck(key, group, messageIds);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], java.util.Map)
 	 */
@@ -3745,7 +3745,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xAdd(key, body);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], java.lang.String[])
 	 */
@@ -3754,7 +3754,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xDel(key, messageIds);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupCreate(byte[], org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset, java.lang.String)
 	 */
@@ -3763,7 +3763,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xGroupCreate(key, readOffset, group);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupDelConsumer(byte[], org.springframework.data.redis.connection.RedisStreamCommands.Consumer)
 	 */
@@ -3772,7 +3772,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xGroupDelConsumer(key, consumer);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupDestroy(byte[], java.lang.String)
 	 */
@@ -3781,7 +3781,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xGroupDestroy(key, group);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xLen(byte[])
 	 */
@@ -3790,7 +3790,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xLen(key);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -3800,7 +3800,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xRange(key, range, limit);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRead(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -3809,7 +3809,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xRead(readOptions, streams);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xReadGroup(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -3819,7 +3819,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xReadGroup(consumer, readOptions, streams);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRevRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -3829,7 +3829,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		return delegate.xRevRange(key, range, limit);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xTrim(byte[], long)
 	 */

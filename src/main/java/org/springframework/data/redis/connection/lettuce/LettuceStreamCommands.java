@@ -39,33 +39,35 @@ class LettuceStreamCommands implements RedisStreamCommands {
 
 	private final @NonNull LettuceConnection connection;
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAck(byte[], byte[], java.lang.String[])
 	 */
 	@Override
-	public Long xAck(byte[] key, byte[] group, String... messageIds) {
+	public Long xAck(byte[] key, String group, String... messageIds) {
 
 		Assert.notNull(key, "Key must not be null!");
-		Assert.notNull(group, "Group must not be null!");
+		Assert.hasText(group, "Group name must not be null or empty!");
 		Assert.notNull(messageIds, "MessageIds must not be null!");
 
 		try {
 			if (isPipelined()) {
-				pipeline(connection.newLettuceResult(getAsyncConnection().xack(key, group, messageIds)));
+				pipeline(
+						connection.newLettuceResult(getAsyncConnection().xack(key, LettuceConverters.toBytes(group), messageIds)));
 				return null;
 			}
 			if (isQueueing()) {
-				transaction(connection.newLettuceResult(getAsyncConnection().xack(key, group, messageIds)));
+				transaction(
+						connection.newLettuceResult(getAsyncConnection().xack(key, LettuceConverters.toBytes(group), messageIds)));
 				return null;
 			}
-			return getConnection().xack(key, group, messageIds);
+			return getConnection().xack(key, LettuceConverters.toBytes(group), messageIds);
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], java.util.Map)
 	 */
@@ -90,7 +92,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], java.lang.String[])
 	 */
@@ -115,7 +117,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupCreate(byte[], org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset, java.lang.String)
 	 */
@@ -145,7 +147,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupDelConsumer(byte[], org.springframework.data.redis.connection.RedisStreamCommands.Consumer)
 	 */
@@ -172,7 +174,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupDestroy(byte[], java.lang.String)
 	 */
@@ -199,7 +201,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xLen(byte[])
 	 */
@@ -223,7 +225,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -234,7 +236,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		Assert.notNull(range, "Range must not be null!");
 		Assert.notNull(limit, "Limit must not be null!");
 
-		io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(range);
+		io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(range, false);
 		io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(limit);
 		try {
 			if (isPipelined()) {
@@ -254,7 +256,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRead(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -284,7 +286,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xReadGroup(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -318,7 +320,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRevRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -349,7 +351,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		}
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xTrim(byte[], long)
 	 */
