@@ -21,6 +21,7 @@ import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -266,8 +267,8 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "StreamOffsets must not be null!");
 
-		XReadArgs.StreamOffset<byte[]>[] streamOffsets = LettuceConverters.toStreamOffsets(streams);
-		XReadArgs args = toReadArgs(readOptions);
+		XReadArgs.StreamOffset<byte[]>[] streamOffsets = toStreamOffsets(streams);
+		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
 
 		try {
 			if (isPipelined()) {
@@ -298,8 +299,8 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "StreamOffsets must not be null!");
 
-		XReadArgs.StreamOffset<byte[]>[] streamOffsets = LettuceConverters.toStreamOffsets(streams);
-		XReadArgs args = toReadArgs(readOptions);
+		XReadArgs.StreamOffset<byte[]>[] streamOffsets = toStreamOffsets(streams);
+		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
 		io.lettuce.core.Consumer<byte[]> lettuceConsumer = toConsumer(consumer);
 
 		try {
@@ -403,25 +404,14 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		return connection.convertLettuceAccessException(ex);
 	}
 
-	private static XReadArgs toReadArgs(StreamReadOptions readOptions) {
+	@SuppressWarnings("unchecked")
+	private static XReadArgs.StreamOffset<byte[]>[] toStreamOffsets(StreamOffset<byte[]>[] streams) {
 
-		XReadArgs args = new XReadArgs();
-
-		if (readOptions.isNoack()) {
-			args.noack(true);
-		}
-
-		if (readOptions.getBlock() != null) {
-			args.block(readOptions.getBlock());
-		}
-
-		if (readOptions.getCount() != null) {
-			args.count(readOptions.getCount());
-		}
-		return args;
+		return Arrays.stream(streams).map(it -> XReadArgs.StreamOffset.from(it.getKey(), it.getOffset().getOffset()))
+				.toArray(XReadArgs.StreamOffset[]::new);
 	}
 
-	private io.lettuce.core.Consumer<byte[]> toConsumer(Consumer consumer) {
+	private static io.lettuce.core.Consumer<byte[]> toConsumer(Consumer consumer) {
 		return io.lettuce.core.Consumer.from(LettuceConverters.toBytes(consumer.getGroup()),
 				LettuceConverters.toBytes(consumer.getName()));
 	}

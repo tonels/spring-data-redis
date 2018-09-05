@@ -16,7 +16,6 @@
 package org.springframework.data.redis.connection.lettuce;
 
 import io.lettuce.core.*;
-import io.lettuce.core.XReadArgs.StreamOffset;
 import io.lettuce.core.cluster.models.partitions.Partitions;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode.NodeFlag;
 import io.lettuce.core.protocol.LettuceCharsets;
@@ -100,9 +99,9 @@ abstract public class LettuceConverters extends Converters {
 	private static final Converter<KeyValue<Object, Object>, Object> KEY_VALUE_UNWRAPPER;
 	private static final ListConverter<KeyValue<Object, Object>, Object> KEY_VALUE_LIST_UNWRAPPER;
 	private static final Converter<TransactionResult, List<Object>> TRANSACTION_RESULT_UNWRAPPER;
-	private static final Converter<StreamMessage<byte[], byte[]>, RedisStreamCommands.StreamMessage<byte[], byte[]>> STREAM_MESSAGE_CONVERTER;
+	private static final Converter<StreamMessage<Object, Object>, RedisStreamCommands.StreamMessage<Object, Object>> STREAM_MESSAGE_CONVERTER;
 
-	private static final Converter<List<StreamMessage<byte[], byte[]>>, List<RedisStreamCommands.StreamMessage<byte[], byte[]>>> STREAM_MESSAGE_LIST_CONVERTER;
+	private static final Converter<List<StreamMessage<Object, Object>>, List<RedisStreamCommands.StreamMessage<Object, Object>>> STREAM_MESSAGE_LIST_CONVERTER;
 
 	public static final byte[] PLUS_BYTES;
 	public static final byte[] MINUS_BYTES;
@@ -308,9 +307,9 @@ abstract public class LettuceConverters extends Converters {
 
 		STREAM_MESSAGE_LIST_CONVERTER = messages -> {
 
-			List<RedisStreamCommands.StreamMessage<byte[], byte[]>> result = new ArrayList<>(messages.size());
+			List<RedisStreamCommands.StreamMessage<Object, Object>> result = new ArrayList<>(messages.size());
 
-			for (StreamMessage<byte[], byte[]> message : messages) {
+			for (StreamMessage<Object, Object> message : messages) {
 				result.add(STREAM_MESSAGE_CONVERTER.convert(message));
 			}
 

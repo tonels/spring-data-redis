@@ -74,8 +74,8 @@ public interface RedisStreamCommands {
 	/**
 	 * Create a consumer group.
 	 *
-	 * @param key
-	 * @param readOffset
+	 * @param key the stream key.
+	 * @param readOffset the offset to start with.
 	 * @param group name of the consumer group.
 	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
 	 */
@@ -103,7 +103,7 @@ public interface RedisStreamCommands {
 	Boolean xGroupDestroy(byte[] key, String group);
 
 	/**
-	 * Get the length of a steam.
+	 * Get the length of a stream.
 	 *
 	 * @param key the stream key.
 	 * @return length of the stream. {@literal null} when used in pipeline / transaction.
