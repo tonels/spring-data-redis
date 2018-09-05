@@ -2032,7 +2032,7 @@ public interface StringRedisConnection extends RedisConnection {
 	Boolean xGroupDestroy(String key, String group);
 
 	/**
-	 * Get the length of a steam.
+	 * Get the length of a stream.
 	 *
 	 * @param key the stream key.
 	 * @return length of the stream. {@literal null} when used in pipeline / transaction.

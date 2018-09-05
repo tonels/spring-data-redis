@@ -17,12 +17,14 @@ package org.springframework.data.redis.connection.lettuce;
 
 import io.lettuce.core.Range;
 import io.lettuce.core.Range.Boundary;
+import io.lettuce.core.XReadArgs;
 import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.protocol.LettuceCharsets;
 
 import java.nio.ByteBuffer;
 
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -85,5 +87,23 @@ class ArgumentConverters {
 
 			return inclusive ? Boundary.including((ByteBuffer) value) : Boundary.excluding((ByteBuffer) value);
 		};
+	}
+
+	static XReadArgs toReadArgs(StreamReadOptions readOptions) {
+
+		XReadArgs args = new XReadArgs();
+
+		if (readOptions.isNoack()) {
+			args.noack(true);
+		}
+
+		if (readOptions.getBlock() != null) {
+			args.block(readOptions.getBlock());
+		}
+
+		if (readOptions.getCount() != null) {
+			args.count(readOptions.getCount());
+		}
+		return args;
 	}
 }
