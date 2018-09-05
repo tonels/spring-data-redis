@@ -32,6 +32,7 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.1
  */
+// TODO: Implement me
 public interface BoundStreamOperations<K, V> {
 
 	/**
@@ -95,7 +96,7 @@ public interface BoundStreamOperations<K, V> {
 	Boolean destroyGroup(String group);
 
 	/**
-	 * Get the length of a steam.
+	 * Get the length of a stream.
 	 *
 	 * @return length of the stream. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xlen">Redis Documentation: XLEN</a>
