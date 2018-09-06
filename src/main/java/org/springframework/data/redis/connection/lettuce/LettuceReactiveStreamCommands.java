@@ -17,6 +17,7 @@ package org.springframework.data.redis.connection.lettuce;
 
 import io.lettuce.core.XReadArgs;
 import io.lettuce.core.XReadArgs.StreamOffset;
+import io.lettuce.core.cluster.api.reactive.RedisClusterReactiveCommands;
 import reactor.core.publisher.Flux;
 
 import java.nio.ByteBuffer;
@@ -30,6 +31,7 @@ import org.springframework.data.redis.connection.ReactiveStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
+import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.util.ByteUtils;
 import org.springframework.util.Assert;
 
@@ -53,7 +55,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		this.connection = connection;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xAck(org.reactivestreams.Publisher)
 	 */
@@ -71,7 +73,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xAdd(org.reactivestreams.Publisher)
 	 */
@@ -87,7 +89,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xDel(org.reactivestreams.Publisher)
 	 */
@@ -104,7 +106,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xLen(org.reactivestreams.Publisher)
 	 */
@@ -119,7 +121,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xRange(org.reactivestreams.Publisher)
 	 */
@@ -133,7 +135,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			Assert.notNull(command.getRange(), "Range must not be null!");
 			Assert.notNull(command.getLimit(), "Limit must not be null!");
 
-			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange());
+			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange(), false);
 			io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(command.getLimit());
 
 			return new CommandResponse<>(command, cmd.xrange(command.getKey(), lettuceRange, lettuceLimit)
@@ -141,7 +143,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#read(org.reactivestreams.Publisher)
 	 */
@@ -149,27 +151,39 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	public Flux<CommandResponse<ReadCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> read(
 			Publisher<ReadCommand> commands) {
 
-		return connection.execute(cmd -> Flux.from(commands).map(command -> {
+		return Flux.from(commands).map(command -> {
 
 			Assert.notNull(command.getStreamOffsets(), "StreamOffsets must not be null!");
 			Assert.notNull(command.getReadOptions(), "ReadOptions must not be null!");
 
-			XReadArgs.StreamOffset<ByteBuffer>[] streamOffsets = toStreamOffsets(command.getStreamOffsets());
-			XReadArgs args = ArgumentConverters.toReadArgs(command.getReadOptions());
+			StreamReadOptions readOptions = command.getReadOptions();
 
-			if (command.getConsumer() == null) {
-				return new CommandResponse<>(command, cmd.xread(args, streamOffsets)
-						.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it)));
+			if (readOptions.getBlock() != null && readOptions.getBlock() > 0) {
+				return new CommandResponse<>(command, connection.executeDedicated(cmd -> doRead(command, readOptions, cmd)));
 			}
 
-			io.lettuce.core.Consumer<ByteBuffer> lettuceConsumer = toConsumer(command.getConsumer());
-
-			return new CommandResponse<>(command, cmd.xreadgroup(lettuceConsumer, args, streamOffsets)
-					.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it)));
-		}));
+			return new CommandResponse<>(command, connection.execute(cmd -> doRead(command, readOptions, cmd)));
+		});
 	}
 
-	/* 
+	private static Flux<StreamMessage<ByteBuffer, ByteBuffer>> doRead(ReadCommand command, StreamReadOptions readOptions,
+			RedisClusterReactiveCommands<ByteBuffer, ByteBuffer> cmd) {
+
+		StreamOffset<ByteBuffer>[] streamOffsets = toStreamOffsets(command.getStreamOffsets());
+		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
+
+		if (command.getConsumer() == null) {
+			return cmd.xread(args, streamOffsets)
+					.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it));
+		}
+
+		io.lettuce.core.Consumer<ByteBuffer> lettuceConsumer = toConsumer(command.getConsumer());
+
+		return cmd.xreadgroup(lettuceConsumer, args, streamOffsets)
+				.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it));
+	}
+
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xRevRange(org.reactivestreams.Publisher)
 	 */
@@ -183,7 +197,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			Assert.notNull(command.getRange(), "Range must not be null!");
 			Assert.notNull(command.getLimit(), "Limit must not be null!");
 
-			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange());
+			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange(), false);
 			io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(command.getLimit());
 
 			return new CommandResponse<>(command, cmd.xrevrange(command.getKey(), lettuceRange, lettuceLimit)
@@ -191,7 +205,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		}));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xTrim(org.reactivestreams.Publisher)
 	 */
