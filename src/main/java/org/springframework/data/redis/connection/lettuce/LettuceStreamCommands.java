@@ -270,6 +270,26 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		XReadArgs.StreamOffset<byte[]>[] streamOffsets = toStreamOffsets(streams);
 		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
 
+		if (isBlocking(readOptions)) {
+
+			try {
+				if (isPipelined()) {
+					pipeline(connection.newLettuceResult(getAsyncDedicatedConnection().xread(args, streamOffsets),
+							LettuceConverters.streamMessageListConverter()));
+					return null;
+				}
+				if (isQueueing()) {
+					transaction(connection.newLettuceResult(getAsyncDedicatedConnection().xread(args, streamOffsets),
+							LettuceConverters.streamMessageListConverter()));
+					return null;
+				}
+				return LettuceConverters.streamMessageListConverter()
+						.convert(getDedicatedConnection().xread(args, streamOffsets));
+			} catch (Exception ex) {
+				throw convertLettuceAccessException(ex);
+			}
+		}
+
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xread(args, streamOffsets),
@@ -302,6 +322,28 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		XReadArgs.StreamOffset<byte[]>[] streamOffsets = toStreamOffsets(streams);
 		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
 		io.lettuce.core.Consumer<byte[]> lettuceConsumer = toConsumer(consumer);
+
+		if (isBlocking(readOptions)) {
+
+			try {
+				if (isPipelined()) {
+					pipeline(connection.newLettuceResult(
+							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
+							LettuceConverters.streamMessageListConverter()));
+					return null;
+				}
+				if (isQueueing()) {
+					transaction(connection.newLettuceResult(
+							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
+							LettuceConverters.streamMessageListConverter()));
+					return null;
+				}
+				return LettuceConverters.streamMessageListConverter()
+						.convert(getDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
+			} catch (Exception ex) {
+				throw convertLettuceAccessException(ex);
+			}
+		}
 
 		try {
 			if (isPipelined()) {
@@ -396,12 +438,24 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		return connection.getAsyncConnection();
 	}
 
-	public RedisClusterCommands<byte[], byte[]> getConnection() {
+	RedisClusterCommands<byte[], byte[]> getConnection() {
 		return connection.getConnection();
+	}
+
+	RedisClusterAsyncCommands<byte[], byte[]> getAsyncDedicatedConnection() {
+		return connection.getAsyncDedicatedConnection();
+	}
+
+	RedisClusterCommands<byte[], byte[]> getDedicatedConnection() {
+		return connection.getDedicatedConnection();
 	}
 
 	private DataAccessException convertLettuceAccessException(Exception ex) {
 		return connection.convertLettuceAccessException(ex);
+	}
+
+	private static boolean isBlocking(StreamReadOptions readOptions) {
+		return readOptions.getBlock() != null && readOptions.getBlock() > 0;
 	}
 
 	@SuppressWarnings("unchecked")
