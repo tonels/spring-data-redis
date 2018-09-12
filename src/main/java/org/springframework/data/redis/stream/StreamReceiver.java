@@ -82,12 +82,13 @@ import org.springframework.util.Assert;
  * </pre>
  *
  * @author Mark Paluch
- * @param <K> Stream key and Stream field type
- * @param <V> Stream value type
+ * @param <K> Stream key and Stream field type.
+ * @param <V> Stream value type.
  * @since 2.1
  * @see StreamReceiverOptions#builder()
  * @see org.springframework.data.redis.core.ReactiveStreamOperations
  * @see ReactiveRedisConnectionFactory
+ * @see StreamMessageListenerContainer
  */
 public interface StreamReceiver<K, V> {
 
@@ -126,12 +127,13 @@ public interface StreamReceiver<K, V> {
 	 * Starts a Redis Stream consumer that consumes {@link StreamMessage messages} from the {@link StreamOffset stream}.
 	 * Messages are consumed from Redis and delivered on the returned {@link Flux} when requests are made on the Flux. The
 	 * receiver is closed when the returned {@link Flux} terminates.
-	 * <p>
+	 * <p/>
 	 * Every message must be acknowledged using
 	 * {@link org.springframework.data.redis.connection.ReactiveStreamCommands#xAck(ByteBuffer, String, String...)}
 	 *
 	 * @param streamOffset the stream along its offset.
 	 * @return Flux of inbound {@link StreamMessage}s.
+	 * @see StreamOffset#create(Object, ReadOffset)
 	 */
 	Flux<StreamMessage<K, V>> receive(StreamOffset<K> streamOffset);
 
@@ -139,10 +141,11 @@ public interface StreamReceiver<K, V> {
 	 * Starts a Redis Stream consumer that consumes {@link StreamMessage messages} from the {@link StreamOffset stream}.
 	 * Messages are consumed from Redis and delivered on the returned {@link Flux} when requests are made on the Flux. The
 	 * receiver is closed when the returned {@link Flux} terminates.
-	 * <p>
+	 * <p/>
 	 * Every message is acknowledged when received.
 	 *
-	 * @param consumer consumer group, must not be {@literal null}. * @param streamOffset the stream along its offset.
+	 * @param consumer consumer group, must not be {@literal null}.
+	 * @param streamOffset the stream along its offset.
 	 * @return Flux of inbound {@link StreamMessage}s.
 	 * @see StreamOffset#create(Object, ReadOffset)
 	 * @see ReadOffset#lastConsumed()
@@ -153,9 +156,10 @@ public interface StreamReceiver<K, V> {
 	 * Starts a Redis Stream consumer that consumes {@link StreamMessage messages} from the {@link StreamOffset stream}.
 	 * Messages are consumed from Redis and delivered on the returned {@link Flux} when requests are made on the Flux. The
 	 * receiver is closed when the returned {@link Flux} terminates.
-	 * <p>
+	 * <p/>
 	 * Every message must be acknowledged using
-	 * {@link org.springframework.data.redis.connection.ReactiveStreamCommands#xAck(ByteBuffer, String, String...)}.
+	 * {@link org.springframework.data.redis.core.ReactiveStreamOperations#acknowledge(Object, String, String...)} after
+	 * processing.
 	 *
 	 * @param consumer consumer group, must not be {@literal null}.
 	 * @param streamOffset the stream along its offset.
@@ -168,8 +172,8 @@ public interface StreamReceiver<K, V> {
 	/**
 	 * Options for {@link StreamReceiver}.
 	 *
-	 * @param <K> Stream key and Stream field type
-	 * @param <V> Stream value type
+	 * @param <K> Stream key and Stream field type.
+	 * @param <V> Stream value type.
 	 * @see StreamReceiverOptionsBuilder
 	 */
 	class StreamReceiverOptions<K, V> {
@@ -226,8 +230,8 @@ public interface StreamReceiver<K, V> {
 	/**
 	 * Builder for {@link StreamReceiverOptions}.
 	 *
-	 * @param <K>
-	 * @param <V>
+	 * @param <K> Stream key and Stream field type.
+	 * @param <V> Stream value type.
 	 */
 	class StreamReceiverOptionsBuilder<K, V> {
 
