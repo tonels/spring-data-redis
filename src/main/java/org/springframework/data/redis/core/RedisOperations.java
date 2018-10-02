@@ -620,7 +620,7 @@ public interface RedisOperations<K, V> {
 	 * Returns the operations performed on Streams.
 	 *
 	 * @return stream operations.
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	StreamOperations<K, V> opsForStream();
 

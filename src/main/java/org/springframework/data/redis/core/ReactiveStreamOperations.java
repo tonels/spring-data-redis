@@ -32,7 +32,7 @@ import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
  * Redis stream specific operations.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface ReactiveStreamOperations<K, V> {
 

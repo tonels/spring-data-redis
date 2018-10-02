@@ -21,7 +21,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
  * Cancelable allows stopping long running tasks and freeing underlying resources.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface Cancelable {
 

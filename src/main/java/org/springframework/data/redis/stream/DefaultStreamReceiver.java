@@ -46,6 +46,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
  * Default implementation of {@link StreamReceiver}.
  *
  * @author Mark Paluch
+ * @since 2.2
  */
 class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 

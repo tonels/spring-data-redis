@@ -17,8 +17,7 @@ package org.springframework.data.redis.connection;
 
 /**
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface ReactiveClusterStreamCommands extends ReactiveStreamCommands {
-
 }

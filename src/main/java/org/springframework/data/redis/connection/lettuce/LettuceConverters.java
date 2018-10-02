@@ -33,12 +33,14 @@ import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Metric;
 import org.springframework.data.geo.Metrics;
 import org.springframework.data.geo.Point;
-import org.springframework.data.redis.connection.*;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.connection.BitFieldSubCommands.BitFieldGet;
 import org.springframework.data.redis.connection.BitFieldSubCommands.BitFieldIncrBy;
 import org.springframework.data.redis.connection.BitFieldSubCommands.BitFieldIncrBy.Overflow;
 import org.springframework.data.redis.connection.BitFieldSubCommands.BitFieldSet;
 import org.springframework.data.redis.connection.BitFieldSubCommands.BitFieldSubCommand;
+import org.springframework.data.redis.connection.DefaultTuple;
+import org.springframework.data.redis.connection.RedisClusterNode;
 import org.springframework.data.redis.connection.RedisClusterNode.Flag;
 import org.springframework.data.redis.connection.RedisClusterNode.LinkState;
 import org.springframework.data.redis.connection.RedisClusterNode.SlotRange;
@@ -46,10 +48,16 @@ import org.springframework.data.redis.connection.RedisGeoCommands.DistanceUnit;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoLocation;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoRadiusCommandArgs;
 import org.springframework.data.redis.connection.RedisListCommands.Position;
+import org.springframework.data.redis.connection.RedisNode;
 import org.springframework.data.redis.connection.RedisNode.NodeType;
+import org.springframework.data.redis.connection.RedisSentinelConfiguration;
+import org.springframework.data.redis.connection.RedisServer;
 import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
+import org.springframework.data.redis.connection.RedisZSetCommands;
 import org.springframework.data.redis.connection.RedisZSetCommands.Range.Boundary;
 import org.springframework.data.redis.connection.RedisZSetCommands.Tuple;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.connection.SortParameters;
 import org.springframework.data.redis.connection.SortParameters.Order;
 import org.springframework.data.redis.connection.convert.Converters;
 import org.springframework.data.redis.connection.convert.ListConverter;
@@ -99,9 +107,7 @@ abstract public class LettuceConverters extends Converters {
 	private static final Converter<KeyValue<Object, Object>, Object> KEY_VALUE_UNWRAPPER;
 	private static final ListConverter<KeyValue<Object, Object>, Object> KEY_VALUE_LIST_UNWRAPPER;
 	private static final Converter<TransactionResult, List<Object>> TRANSACTION_RESULT_UNWRAPPER;
-	private static final Converter<StreamMessage<Object, Object>, RedisStreamCommands.StreamMessage<Object, Object>> STREAM_MESSAGE_CONVERTER;
 
-	private static final Converter<List<StreamMessage<Object, Object>>, List<RedisStreamCommands.StreamMessage<Object, Object>>> STREAM_MESSAGE_LIST_CONVERTER;
 
 	public static final byte[] PLUS_BYTES;
 	public static final byte[] MINUS_BYTES;
@@ -300,21 +306,6 @@ abstract public class LettuceConverters extends Converters {
 		KEY_VALUE_LIST_UNWRAPPER = new ListConverter<>(KEY_VALUE_UNWRAPPER);
 
 		TRANSACTION_RESULT_UNWRAPPER = transactionResult -> transactionResult.stream().collect(Collectors.toList());
-
-		STREAM_MESSAGE_CONVERTER = message -> {
-			return new RedisStreamCommands.StreamMessage<>(message.getStream(), message.getId(), message.getBody());
-		};
-
-		STREAM_MESSAGE_LIST_CONVERTER = messages -> {
-
-			List<RedisStreamCommands.StreamMessage<Object, Object>> result = new ArrayList<>(messages.size());
-
-			for (StreamMessage<Object, Object> message : messages) {
-				result.add(STREAM_MESSAGE_CONVERTER.convert(message));
-			}
-
-			return result;
-		};
 	}
 
 	public static List<Tuple> toTuple(List<byte[]> list) {

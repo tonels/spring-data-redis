@@ -25,7 +25,7 @@ import java.time.Duration;
  * <p />
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface Subscription extends Cancelable {
 

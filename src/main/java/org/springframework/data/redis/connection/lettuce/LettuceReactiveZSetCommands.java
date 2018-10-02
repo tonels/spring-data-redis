@@ -232,7 +232,7 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 
 			if (ObjectUtils.nullSafeEquals(command.getDirection(), Direction.ASC)) {
 
-				Range<Number> range = ArgumentConverters.toRange(command.getRange());
+				Range<Number> range = RangeConverter.toRange(command.getRange());
 
 				if (command.isWithScores()) {
 
@@ -257,7 +257,7 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 				}
 			} else {
 
-				Range<Number> range = ArgumentConverters.toRange(command.getRange());
+				Range<Number> range = RangeConverter.toRange(command.getRange());
 
 				if (command.isWithScores()) {
 
@@ -319,7 +319,7 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 			Assert.notNull(command.getKey(), "Key must not be null!");
 			Assert.notNull(command.getRange(), "Range must not be null!");
 
-			Range<Number> range = ArgumentConverters.toRange(command.getRange());
+			Range<Number> range = RangeConverter.toRange(command.getRange());
 			Mono<Long> result = cmd.zcount(command.getKey(), range);
 
 			return result.map(value -> new NumericResponse<>(command, value));
@@ -392,7 +392,7 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 			Assert.notNull(command.getKey(), "Key must not be null!");
 			Assert.notNull(command.getRange(), "Range must not be null!");
 
-			Range<Number> range = ArgumentConverters.toRange(command.getRange());
+			Range<Number> range = RangeConverter.toRange(command.getRange());
 			Mono<Long> result = cmd.zremrangebyscore(command.getKey(), range);
 
 			return result.map(value -> new NumericResponse<>(command, value));
@@ -466,17 +466,17 @@ class LettuceReactiveZSetCommands implements ReactiveZSetCommands {
 			if (!command.getLimit().isUnlimited()) {
 
 				if (ObjectUtils.nullSafeEquals(command.getDirection(), Direction.ASC)) {
-					result = cmd.zrangebylex(command.getKey(), ArgumentConverters.toRange(command.getRange()),
+					result = cmd.zrangebylex(command.getKey(), RangeConverter.toRange(command.getRange()),
 							LettuceConverters.toLimit(command.getLimit()));
 				} else {
-					result = cmd.zrevrangebylex(command.getKey(), ArgumentConverters.toRange(command.getRange()),
+					result = cmd.zrevrangebylex(command.getKey(), RangeConverter.toRange(command.getRange()),
 							LettuceConverters.toLimit(command.getLimit()));
 				}
 			} else {
 				if (ObjectUtils.nullSafeEquals(command.getDirection(), Direction.ASC)) {
-					result = cmd.zrangebylex(command.getKey(), ArgumentConverters.toRange(command.getRange()));
+					result = cmd.zrangebylex(command.getKey(), RangeConverter.toRange(command.getRange()));
 				} else {
-					result = cmd.zrevrangebylex(command.getKey(), ArgumentConverters.toRange(command.getRange()));
+					result = cmd.zrevrangebylex(command.getKey(), RangeConverter.toRange(command.getRange()));
 				}
 			}
 
