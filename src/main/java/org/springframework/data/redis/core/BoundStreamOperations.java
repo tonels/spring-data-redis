@@ -32,7 +32,6 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-// TODO: Implement me
 public interface BoundStreamOperations<K, V> {
 
 	/**
@@ -102,7 +101,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xlen">Redis Documentation: XLEN</a>
 	 */
 	@Nullable
-	Long size(K key);
+	Long size();
 
 	/**
 	 * Read messages from a stream within a specific {@link Range}.
