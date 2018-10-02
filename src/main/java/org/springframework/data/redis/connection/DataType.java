@@ -27,7 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public enum DataType {
 
-	NONE("none"), STRING("string"), LIST("list"), SET("set"), ZSET("zset"), HASH("hash"), STREAM("stream");
+	NONE("none"), STRING("string"), LIST("list"), SET("set"), ZSET("zset"), HASH("hash"),
+	/**
+	 * @since 2.2
+	 */
+	STREAM("stream");
 
 	private static final Map<String, DataType> codeLookup = new ConcurrentHashMap<>(7);
 
