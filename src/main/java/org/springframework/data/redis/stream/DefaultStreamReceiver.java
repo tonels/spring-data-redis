@@ -17,8 +17,8 @@ package org.springframework.data.redis.stream;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.CoreSubscriber;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Operators;
 import reactor.util.concurrent.Queues;
 import reactor.util.context.Context;
@@ -95,7 +95,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(readOptions, StreamOffset.create(key, readOffset));
 
-			return new StreamSubscription(streamOffset.getKey(), pollState, readFunction).arm();
+			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
 		});
 	}
 
@@ -116,7 +116,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(consumer, readOptions, StreamOffset.create(key, readOffset));
 
-			return new StreamSubscription(streamOffset.getKey(), pollState, readFunction).arm();
+			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
 		});
 	}
 
@@ -139,7 +139,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(consumer, noack, StreamOffset.create(key, readOffset));
 
-			return new StreamSubscription(streamOffset.getKey(), pollState, readFunction).arm();
+			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
 		});
 	}
 
@@ -150,8 +150,8 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 	class StreamSubscription {
 
 		private final Queue<StreamMessage<K, V>> overflow = Queues.<StreamMessage<K, V>> small().get();
-		private final EmitterProcessor<StreamMessage<K, V>> sink = EmitterProcessor.create();
 
+		private final FluxSink<StreamMessage<K, V>> sink;
 		private final K key;
 		private final PollState pollState;
 		private final BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction;
@@ -161,9 +161,9 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 		 *
 		 * @return
 		 */
-		Flux<StreamMessage<K, V>> arm() {
+		void arm() {
 
-			return sink.doOnRequest(toAdd -> {
+			sink.onRequest(toAdd -> {
 
 				if (logger.isDebugEnabled()) {
 					logger.debug(String.format("[stream: %s] onRequest(%d)", key, toAdd));
@@ -191,7 +191,9 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 						logger.debug(String.format("[stream: %s] onRequest(%d): Dropping, subscription canceled", key, toAdd));
 					}
 				}
-			}).doOnCancel(pollState::cancel);
+			});
+
+			sink.onCancel(pollState::cancel);
 		}
 
 		private void scheduleIfRequired() {
@@ -308,14 +310,14 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 					if (logger.isDebugEnabled()) {
 						logger.debug(String.format("[stream: %s] onStreamMessage(%s): Emitting item, fast-path", key, message));
 					}
-					sink.onNext(message);
+					sink.next(message);
 				} else {
 
 					if (pollState.decrementRequested()) {
 						if (logger.isDebugEnabled()) {
 							logger.debug(String.format("[stream: %s] onStreamMessage(%s): Emitting item, slow-path", key, message));
 						}
-						sink.onNext(message);
+						sink.next(message);
 					} else {
 
 						if (logger.isDebugEnabled()) {
@@ -341,7 +343,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 			}
 
 			pollState.cancel();
-			sink.onError(t);
+			sink.error(t);
 		}
 
 		private void emitBuffer() {
@@ -370,7 +372,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 								String.format("[stream: %s] emitBuffer(%s): Emitting item from buffer, fast-path", key, message));
 					}
 
-					sink.onNext(message);
+					sink.next(message);
 
 				} else if (pollState.setRequested(demand, demand - 1)) {
 
@@ -390,7 +392,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 								String.format("[stream: %s] emitBuffer(%s): Emitting item from buffer, slow-path", key, message));
 					}
 
-					sink.onNext(message);
+					sink.next(message);
 				}
 			}
 		}
