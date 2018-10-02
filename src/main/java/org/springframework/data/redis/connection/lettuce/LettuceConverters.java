@@ -108,7 +108,6 @@ abstract public class LettuceConverters extends Converters {
 	private static final ListConverter<KeyValue<Object, Object>, Object> KEY_VALUE_LIST_UNWRAPPER;
 	private static final Converter<TransactionResult, List<Object>> TRANSACTION_RESULT_UNWRAPPER;
 
-
 	public static final byte[] PLUS_BYTES;
 	public static final byte[] MINUS_BYTES;
 	public static final byte[] POSITIVE_INFINITY_BYTES;
@@ -532,7 +531,20 @@ abstract public class LettuceConverters extends Converters {
 	 * @since 2.0
 	 */
 	public static <T> Range<T> toRange(org.springframework.data.redis.connection.RedisZSetCommands.Range range) {
-		return Range.from(lowerBoundaryOf(range), upperBoundaryOf(range));
+		return Range.from(lowerBoundaryOf(range, false), upperBoundaryOf(range, false));
+	}
+
+	/**
+	 * Convert a {@link org.springframework.data.redis.connection.RedisZSetCommands.Range} to a lettuce {@link Range}.
+	 *
+	 * @param range
+	 * @param convertNumberToBytes
+	 * @return
+	 * @since 2.2
+	 */
+	public static <T> Range<T> toRange(org.springframework.data.redis.connection.RedisZSetCommands.Range range,
+			boolean convertNumberToBytes) {
+		return Range.from(lowerBoundaryOf(range, convertNumberToBytes), upperBoundaryOf(range, convertNumberToBytes));
 	}
 
 	/**
@@ -544,23 +556,23 @@ abstract public class LettuceConverters extends Converters {
 	 * @since 2.0
 	 */
 	public static <T> Range<T> toRevRange(org.springframework.data.redis.connection.RedisZSetCommands.Range range) {
-		return Range.from(upperBoundaryOf(range), lowerBoundaryOf(range));
+		return Range.from(upperBoundaryOf(range, false), lowerBoundaryOf(range, false));
 	}
 
 	@SuppressWarnings("unchecked")
 	private static <T> Range.Boundary<T> lowerBoundaryOf(
-			org.springframework.data.redis.connection.RedisZSetCommands.Range range) {
-		return (Range.Boundary<T>) rangeToBoundaryArgumentConverter(false).convert(range);
+			org.springframework.data.redis.connection.RedisZSetCommands.Range range, boolean convertNumberToBytes) {
+		return (Range.Boundary<T>) rangeToBoundaryArgumentConverter(false, convertNumberToBytes).convert(range);
 	}
 
 	@SuppressWarnings("unchecked")
 	private static <T> Range.Boundary<T> upperBoundaryOf(
-			org.springframework.data.redis.connection.RedisZSetCommands.Range range) {
-		return (Range.Boundary<T>) rangeToBoundaryArgumentConverter(true).convert(range);
+			org.springframework.data.redis.connection.RedisZSetCommands.Range range, boolean convertNumberToBytes) {
+		return (Range.Boundary<T>) rangeToBoundaryArgumentConverter(true, convertNumberToBytes).convert(range);
 	}
 
 	private static Converter<org.springframework.data.redis.connection.RedisZSetCommands.Range, Range.Boundary<?>> rangeToBoundaryArgumentConverter(
-			boolean upper) {
+			boolean upper, boolean convertNumberToBytes) {
 
 		return (source) -> {
 
@@ -573,7 +585,12 @@ abstract public class LettuceConverters extends Converters {
 			Object value = sourceBoundary.getValue();
 
 			if (value instanceof Number) {
-				return inclusive ? Range.Boundary.including((Number) value) : Range.Boundary.excluding((Number) value);
+
+				if (convertNumberToBytes) {
+					value = value.toString();
+				} else {
+					return inclusive ? Range.Boundary.including((Number) value) : Range.Boundary.excluding((Number) value);
+				}
 			}
 
 			if (value instanceof String) {
