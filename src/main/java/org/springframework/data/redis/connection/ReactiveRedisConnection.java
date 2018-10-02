@@ -156,7 +156,7 @@ public interface ReactiveRedisConnection extends Closeable {
 	 * Get {@link ReactiveStreamCommands}.
 	 *
 	 * @return never {@literal null}.
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	ReactiveStreamCommands streamCommands();
 

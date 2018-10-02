@@ -249,7 +249,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 	 * {@link Subscription} wrapping a {@link Task}.
 	 *
 	 * @author Mark Paluch
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	@EqualsAndHashCode
 	@RequiredArgsConstructor
@@ -293,7 +293,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 	 * Logging {@link ErrorHandler}.
 	 *
 	 * @author Mark Paluch
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	enum LoggingErrorHandler implements ErrorHandler {
 
