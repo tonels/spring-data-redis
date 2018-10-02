@@ -625,6 +625,14 @@ public interface RedisOperations<K, V> {
 	StreamOperations<K, V> opsForStream();
 
 	/**
+	 * Returns the operations performed on Streams bound to the given key.
+	 *
+	 * @return stream operations.
+	 * @since 2.2
+	 */
+	BoundStreamOperations<K, V> boundStreamOps(K key);
+
+	/**
 	 * Returns the operations performed on simple values (or Strings in Redis terminology).
 	 *
 	 * @return value operations

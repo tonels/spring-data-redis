@@ -1316,6 +1316,15 @@ public class RedisTemplate<K, V> extends RedisAccessor implements RedisOperation
 
 	/*
 	 * (non-Javadoc)
+	 * @see org.springframework.data.redis.core.RedisOperations#boundStreamOps(java.lang.Object)
+	 */
+	@Override
+	public BoundStreamOperations<K, V> boundStreamOps(K key) {
+		return new DefaultBoundStreamOperations<>(key, this);
+	}
+
+	/*
+	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.RedisOperations#boundValueOps(java.lang.Object)
 	 */
 	@Override
