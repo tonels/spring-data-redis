@@ -93,6 +93,10 @@ class StreamConverters {
 			implements Converter<StreamMessage<Object, Object>, RedisStreamCommands.StreamMessage<Object, Object>> {
 		INSTANCE;
 
+		/* 
+		 * (non-Javadoc)
+		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
+		 */
 		@Override
 		public RedisStreamCommands.StreamMessage<Object, Object> convert(StreamMessage<Object, Object> source) {
 			return new RedisStreamCommands.StreamMessage<>(source.getStream(), source.getId(), source.getBody());
@@ -106,6 +110,10 @@ class StreamConverters {
 
 		INSTANCE;
 
+		/* 
+		 * (non-Javadoc)
+		 * @see org.springframework.core.convert.converter.Converter#convert(java.lang.Object)
+		 */
 		@Override
 		public XReadArgs convert(StreamReadOptions source) {
 
