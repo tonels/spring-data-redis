@@ -41,7 +41,7 @@ import org.springframework.util.Assert;
  * Default implementation of {@link ReactiveStreamOperations}.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 @RequiredArgsConstructor
 class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<K, V> {
@@ -49,7 +49,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	private final @NonNull ReactiveRedisTemplate<?, ?> template;
 	private final @NonNull RedisSerializationContext<K, V> serializationContext;
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#acknowledge(java.lang.Object, java.lang.String, java.lang.String[])
 	 */
@@ -64,7 +64,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createMono(connection -> connection.xAck(rawKey(key), group, messageIds));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#add(java.lang.Object, java.util.Map)
 	 */
@@ -82,7 +82,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createMono(connection -> connection.xAdd(rawKey(key), rawBody));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#delete(java.lang.Object, java.lang.String[])
 	 */
@@ -95,7 +95,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createMono(connection -> connection.xDel(rawKey(key), messageIds));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#size(java.lang.Object)
 	 */
@@ -107,7 +107,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createMono(connection -> connection.xLen(rawKey(key)));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#range(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -121,7 +121,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createFlux(connection -> connection.xRange(rawKey(key), range, limit).map(this::readValue));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -139,7 +139,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		});
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -158,7 +158,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		});
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#reverseRange(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -172,7 +172,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return createFlux(connection -> connection.xRevRange(rawKey(key), range, limit).map(this::readValue));
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#trim(java.lang.Object, long)
 	 */

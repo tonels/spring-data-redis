@@ -55,7 +55,7 @@ public interface Task extends SchedulingAwareRunnable, Cancelable {
 	 * The {@link Task.State} defining the lifecycle phase the actual {@link Task}.
 	 *
 	 * @author Mark Paluch
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	enum State {
 		CREATED, STARTING, RUNNING, CANCELLED;

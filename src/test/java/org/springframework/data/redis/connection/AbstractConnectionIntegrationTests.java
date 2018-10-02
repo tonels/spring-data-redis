@@ -3004,7 +3004,7 @@ public abstract class AbstractConnectionIntegrationTests {
 	}
 
 
-	@Test // DATAREDIS-562
+	@Test // DATAREDIS-864
 	@IfProfileValue(name = "redisVersion", value = "5.0")
 	@WithRedisDriver({ RedisDriver.LETTUCE })
 	public void xAddShouldCreateStream() {
@@ -3018,7 +3018,7 @@ public abstract class AbstractConnectionIntegrationTests {
 		assertThat(results.get(1), is(DataType.STREAM));
 	}
 
-	@Test // DATAREDIS-562
+	@Test // DATAREDIS-864
 	@IfProfileValue(name = "redisVersion", value = "5.0")
 	@WithRedisDriver({ RedisDriver.LETTUCE })
 	public void xReadShouldReadMessage() {
@@ -3034,7 +3034,7 @@ public abstract class AbstractConnectionIntegrationTests {
 		assertThat(messages.get(0).getBody(), is(Collections.singletonMap(KEY_2, VALUE_2)));
 	}
 
-	@Test // DATAREDIS-562
+	@Test // DATAREDIS-864
 	@IfProfileValue(name = "redisVersion", value = "5.0")
 	@WithRedisDriver({ RedisDriver.LETTUCE })
 	public void xReadGroupShouldReadMessage() {
@@ -3054,7 +3054,7 @@ public abstract class AbstractConnectionIntegrationTests {
 		assertThat((List<StreamMessage>) results.get(3), is(empty()));
 	}
 
-	@Test // DATAREDIS-562
+	@Test // DATAREDIS-864
 	@IfProfileValue(name = "redisVersion", value = "5.0")
 	@WithRedisDriver({ RedisDriver.LETTUCE })
 	public void xRangeShouldReportMessages() {
@@ -3076,7 +3076,7 @@ public abstract class AbstractConnectionIntegrationTests {
 		assertThat(messages.get(1).getBody(), is(Collections.singletonMap(KEY_3, VALUE_3)));
 	}
 
-	@Test // DATAREDIS-562
+	@Test // DATAREDIS-864
 	@IfProfileValue(name = "redisVersion", value = "5.0")
 	@WithRedisDriver({ RedisDriver.LETTUCE })
 	public void xRevRangeShouldReportMessages() {

@@ -432,7 +432,7 @@ public interface ReactiveRedisOperations<K, V> {
 	 * Returns the operations performed on streams.
 	 *
 	 * @return stream operations.
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	ReactiveStreamOperations<K, V> opsForStream();
 
@@ -441,7 +441,7 @@ public interface ReactiveRedisOperations<K, V> {
 	 *
 	 * @param serializationContext serializers to be used with the returned operations, must not be {@literal null}.
 	 * @return stream operations.
-	 * @since 2.1
+	 * @since 2.2
 	 */
 	<K, V> ReactiveStreamOperations<K, V> opsForStream(RedisSerializationContext<K, V> serializationContext);
 
