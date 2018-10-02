@@ -35,6 +35,7 @@ import org.springframework.lang.Nullable;
  * Default implementation of {@link ListOperations}.
  *
  * @author Mark Paluch
+ * @since 2.2
  */
 class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements StreamOperations<K, V> {
 
@@ -42,7 +43,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		super(template);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#acknowledge(java.lang.Object, java.lang.String, java.lang.String[])
 	 */
@@ -53,7 +54,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xAck(rawKey, group, messageIds), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#add(java.lang.Object, java.util.Map)
 	 */
@@ -70,7 +71,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xAdd(rawKey, rawBody), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#delete(java.lang.Object, java.lang.String[])
 	 */
@@ -81,7 +82,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xDel(rawKey, messageIds), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#createGroup(java.lang.Object, org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset, java.lang.String)
 	 */
@@ -92,7 +93,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xGroupCreate(rawKey, readOffset, group), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#deleteConsumer(java.lang.Object, org.springframework.data.redis.connection.RedisStreamCommands.Consumer)
 	 */
@@ -103,7 +104,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xGroupDelConsumer(rawKey, consumer), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#destroyGroup(java.lang.Object, java.lang.String)
 	 */
@@ -114,7 +115,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xGroupDestroy(rawKey, group), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#size(java.lang.Object)
 	 */
@@ -125,7 +126,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		return execute(connection -> connection.xLen(rawKey), true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#range(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
@@ -141,7 +142,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		}, true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -157,7 +158,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		}, true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
@@ -173,7 +174,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 		}, true);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.core.StreamOperations#reverseRange(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */

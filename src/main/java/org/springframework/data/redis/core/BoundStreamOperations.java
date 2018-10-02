@@ -30,7 +30,7 @@ import org.springframework.lang.Nullable;
  * Redis stream specific operations bound to a certain key.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 // TODO: Implement me
 public interface BoundStreamOperations<K, V> {

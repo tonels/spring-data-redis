@@ -42,7 +42,7 @@ import org.springframework.util.ErrorHandler;
  * This message container creates long-running tasks that are executed on {@link Executor}.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListenerContainer<K, V> {
 
@@ -181,7 +181,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 		return Integer.MAX_VALUE;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.stream.StreamMessageListenerContainer#register(org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamReadRequest, org.springframework.data.redis.stream.StreamListener)
 	 */
@@ -247,7 +247,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 
 	/**
 	 * {@link Subscription} wrapping a {@link Task}.
-	 * 
+	 *
 	 * @author Mark Paluch
 	 * @since 2.1
 	 */
@@ -261,7 +261,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			return task;
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.redis.stream.Subscription#isActive()
 		 */
@@ -270,7 +270,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			return task.isActive();
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.redis.stream.Subscription#await(java.time.Duration)
 		 */
@@ -279,7 +279,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			return task.awaitStart(timeout);
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.redis.stream.Cancelable#cancel()
 		 */
@@ -291,7 +291,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 
 	/**
 	 * Logging {@link ErrorHandler}.
-	 * 
+	 *
 	 * @author Mark Paluch
 	 * @since 2.1
 	 */
@@ -305,7 +305,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			this.logger = LogFactory.getLog(LoggingErrorHandler.class);
 		}
 
-		/* 
+		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.util.ErrorHandler#handleError(java.lang.Throwable)
 		 */

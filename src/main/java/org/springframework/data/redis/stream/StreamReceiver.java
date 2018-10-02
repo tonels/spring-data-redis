@@ -84,7 +84,7 @@ import org.springframework.util.Assert;
  * @author Mark Paluch
  * @param <K> Stream key and Stream field type.
  * @param <V> Stream value type.
- * @since 2.1
+ * @since 2.2
  * @see StreamReceiverOptions#builder()
  * @see org.springframework.data.redis.core.ReactiveStreamOperations
  * @see ReactiveRedisConnectionFactory

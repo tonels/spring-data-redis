@@ -31,7 +31,7 @@ import org.springframework.lang.Nullable;
  * Redis stream specific operations.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface StreamOperations<K, V> {
 

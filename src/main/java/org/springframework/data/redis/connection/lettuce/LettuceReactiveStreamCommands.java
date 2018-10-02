@@ -22,6 +22,7 @@ import reactor.core.publisher.Flux;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.CommandResponse;
@@ -39,6 +40,7 @@ import org.springframework.util.Assert;
  * {@link ReactiveStreamCommands} implementation for {@literal Lettuce}.
  *
  * @author Mark Paluch
+ * @since 2.2
  */
 class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 
@@ -135,11 +137,11 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			Assert.notNull(command.getRange(), "Range must not be null!");
 			Assert.notNull(command.getLimit(), "Limit must not be null!");
 
-			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange(), false);
+			io.lettuce.core.Range<String> lettuceRange = RangeConverter.toRange(command.getRange(), Function.identity());
 			io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(command.getLimit());
 
 			return new CommandResponse<>(command, cmd.xrange(command.getKey(), lettuceRange, lettuceLimit)
-					.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it)));
+					.map(StreamConverters::toStreamMessage));
 		}));
 	}
 
@@ -170,17 +172,17 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			RedisClusterReactiveCommands<ByteBuffer, ByteBuffer> cmd) {
 
 		StreamOffset<ByteBuffer>[] streamOffsets = toStreamOffsets(command.getStreamOffsets());
-		XReadArgs args = ArgumentConverters.toReadArgs(readOptions);
+		XReadArgs args = StreamConverters.toReadArgs(readOptions);
 
 		if (command.getConsumer() == null) {
 			return cmd.xread(args, streamOffsets)
-					.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it));
+					.map(StreamConverters::toStreamMessage);
 		}
 
 		io.lettuce.core.Consumer<ByteBuffer> lettuceConsumer = toConsumer(command.getConsumer());
 
 		return cmd.xreadgroup(lettuceConsumer, args, streamOffsets)
-				.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it));
+				.map(StreamConverters::toStreamMessage);
 	}
 
 	/*
@@ -197,11 +199,11 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			Assert.notNull(command.getRange(), "Range must not be null!");
 			Assert.notNull(command.getLimit(), "Limit must not be null!");
 
-			io.lettuce.core.Range<String> lettuceRange = ArgumentConverters.toRange(command.getRange(), false);
+			io.lettuce.core.Range<String> lettuceRange = RangeConverter.toRange(command.getRange(), Function.identity());
 			io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(command.getLimit());
 
 			return new CommandResponse<>(command, cmd.xrevrange(command.getKey(), lettuceRange, lettuceLimit)
-					.map(it -> LettuceConverters.<ByteBuffer> streamMessageConverter().convert(it)));
+					.map(StreamConverters::toStreamMessage));
 		}));
 	}
 

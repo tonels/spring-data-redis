@@ -34,9 +34,9 @@ import org.springframework.util.ErrorHandler;
 
 /**
  * {@link Task} that invokes a {@link BiFunction read function} to poll on a Redis Stream.
- * 
+ *
  * @author Mark Paluch
- * @see 2.1
+ * @see 2.2
  */
 class StreamPollTask<K, V> implements Task {
 
@@ -71,7 +71,7 @@ class StreamPollTask<K, V> implements Task {
 		return PollState.standalone(streamOffset.getOffset());
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.stream.Cancelable#cancel()
 	 */
@@ -80,7 +80,7 @@ class StreamPollTask<K, V> implements Task {
 		this.pollState.cancel();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.stream.Task#getState()
 	 */
@@ -89,7 +89,7 @@ class StreamPollTask<K, V> implements Task {
 		return pollState.getState();
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.stream.Task#awaitStart(java.time.Duration)
 	 */
@@ -98,7 +98,7 @@ class StreamPollTask<K, V> implements Task {
 		return pollState.awaitStart(timeout.toNanos(), TimeUnit.NANOSECONDS);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.scheduling.SchedulingAwareRunnable#isLongLived()
 	 */
@@ -107,7 +107,7 @@ class StreamPollTask<K, V> implements Task {
 		return true;
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Runnable#run()
 	 */

@@ -32,7 +32,7 @@ import org.springframework.util.Assert;
  * Stream-specific Redis commands.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface RedisStreamCommands {
 

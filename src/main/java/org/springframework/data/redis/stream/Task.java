@@ -23,7 +23,7 @@ import org.springframework.scheduling.SchedulingAwareRunnable;
  * The actual {@link Task} to run within the {@link StreamMessageListenerContainer}.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 public interface Task extends SchedulingAwareRunnable, Cancelable {
 

@@ -94,17 +94,17 @@ import org.springframework.util.ErrorHandler;
  *
  * StreamMessageListenerContainer<String, String> container = StreamMessageListenerContainer.create(factory);
  * Subscription subscription = container.receive(StreamOffset.create("my-stream", ReadOffset.from("0-0")), message -> …);
- * 
+ *
  * container.start();
  *
  * // later
  * container.stop();
  * </pre>
- * 
+ *
  * @author Mark Paluch
  * @param <K> Stream key and Stream field type.
  * @param <V> Stream value type.
- * @since 2.1
+ * @since 2.2
  * @see StreamMessageListenerContainerOptions#builder()
  * @see StreamListener
  * @see StreamReadRequest
@@ -322,7 +322,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 
 	/**
 	 * Builder to build a {@link StreamReadRequest}.
-	 * 
+	 *
 	 * @param <K> Stream key and Stream field type.
 	 */
 	class StreamReadRequestBuilder<K> {
@@ -379,7 +379,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 
 		/**
 		 * Build a new instance of {@link StreamReadRequest}.
-		 * 
+		 *
 		 * @return a new instance of {@link StreamReadRequest}.
 		 */
 		public StreamReadRequest<K> build() {
@@ -389,7 +389,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 
 	/**
 	 * Builder to build a {@link ConsumerStreamReadRequest}.
-	 * 
+	 *
 	 * @param <K> Stream key and Stream field type.
 	 */
 	class ConsumerStreamReadRequestBuilder<K> extends StreamReadRequestBuilder<K> {
@@ -453,7 +453,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 
 		/**
 		 * Build a new instance of {@link ConsumerStreamReadRequest}.
-		 * 
+		 *
 		 * @return a new instance of {@link ConsumerStreamReadRequest}.
 		 */
 		public ConsumerStreamReadRequest<K> build() {

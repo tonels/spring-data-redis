@@ -19,7 +19,7 @@ import org.springframework.data.redis.connection.ReactiveClusterStreamCommands;
 
 /**
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 class LettuceReactiveClusterStreamCommands extends LettuceReactiveStreamCommands
 		implements ReactiveClusterStreamCommands {

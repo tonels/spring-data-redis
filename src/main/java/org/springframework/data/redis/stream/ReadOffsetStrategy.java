@@ -24,7 +24,7 @@ import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
  * Strategy to determine the first and subsequent {@link ReadOffset}.
  *
  * @author Mark Paluch
- * @since 2.1
+ * @since 2.2
  */
 enum ReadOffsetStrategy {
 
