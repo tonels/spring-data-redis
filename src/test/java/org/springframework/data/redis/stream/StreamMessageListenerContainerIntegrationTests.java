@@ -184,9 +184,11 @@ public class StreamMessageListenerContainerIntegrationTests {
 		container.start();
 		Subscription subscription = container.register(readRequest, it -> {});
 
-		subscription.await(Duration.ofSeconds(2));
+		subscription.await(Duration.ofSeconds(1));
 
 		redisTemplate.delete("my-stream");
+
+		subscription.await(Duration.ofSeconds(1));
 
 		assertThat(failures.poll(1, TimeUnit.SECONDS)).isNotNull();
 		assertThat(subscription.isActive()).isFalse();
