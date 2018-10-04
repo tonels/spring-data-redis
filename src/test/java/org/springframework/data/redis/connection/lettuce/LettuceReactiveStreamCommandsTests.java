@@ -16,14 +16,17 @@
 package org.springframework.data.redis.connection.lettuce;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assume.*;
 
 import io.lettuce.core.XReadArgs;
 import reactor.test.StepVerifier;
 
 import java.util.Collections;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.data.domain.Range;
+import org.springframework.data.redis.RedisTestProfileValueSource;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -35,6 +38,13 @@ import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
  * @author Mark Paluch
  */
 public class LettuceReactiveStreamCommandsTests extends LettuceReactiveCommandsTestsBase {
+
+	@Before
+	public void before() {
+
+		// TODO: Upgrade to 5.0
+		assumeTrue(RedisTestProfileValueSource.matches("redisVersion", "4.9"));
+	}
 
 	@Test // DATAREDIS-864
 	public void xAddShouldAddMessage() {

@@ -16,6 +16,7 @@
 package org.springframework.data.redis.stream;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assume.*;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -28,6 +29,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.data.redis.ConnectionFactoryTracker;
+import org.springframework.data.redis.RedisVersionUtils;
 import org.springframework.data.redis.SettingsUtils;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -74,6 +76,9 @@ public class StreamMessageListenerContainerIntegrationTests {
 		ConnectionFactoryTracker.add(lettuceConnectionFactory);
 
 		connectionFactory = lettuceConnectionFactory;
+
+		// TODO: Upgrade to 5.0
+		assumeTrue(RedisVersionUtils.atLeast("4.9", connectionFactory.getConnection()));
 	}
 
 	@AfterClass
