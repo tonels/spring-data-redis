@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +23,7 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.core.convert.RedisCustomConversions;
 import org.springframework.data.redis.hash.HashMapper;
+import org.springframework.data.redis.hash.Jackson2HashMapper;
 import org.springframework.data.redis.hash.ObjectHashMapper;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
@@ -58,12 +58,23 @@ public class ApiSpike {
 	}
 
 	@Test
+	public void all() {
+
+		plainStuff();
+		System.out.println("-----------");
+		simpleObject();
+		System.out.println("-----------");
+		writeWithHashReadWithMap();
+		System.out.println("-----------");
+	}
+
+	@Test
 	public void plainStuff() {
 
 		RedisStreamCommandsImpl imp = new RedisStreamCommandsImpl(lc);
 
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
-				RedisSerializer.string(), RedisSerializer.java());
+				RedisSerializer.string(), RedisSerializer.java(), null);
 
 		EntryId id = ops.xAdd("foo", StreamEntry.of(Collections.singletonMap("field", "value")));
 		List<MapStreamEntry<String, Object>> range = ops.xRange("foo", Range.unbounded());
@@ -84,7 +95,7 @@ public class ApiSpike {
 		RedisStreamCommandsImpl imp = new RedisStreamCommandsImpl(lc);
 
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
-				RedisSerializer.string(), RedisSerializer.java());
+				RedisSerializer.string(), RedisSerializer.java(), new Jackson2HashMapper(false));
 
 		EntryId id = ops.xAdd("key", o);
 		List<ObjectStreamEntry<SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
@@ -102,7 +113,7 @@ public class ApiSpike {
 		RedisStreamCommandsImpl imp = new RedisStreamCommandsImpl(lc);
 
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
-				RedisSerializer.string(), RedisSerializer.java());
+				RedisSerializer.string(), RedisSerializer.java(), null);
 
 		EntryId id = ops.xAdd("key", o);
 
@@ -171,12 +182,18 @@ public class ApiSpike {
 
 		List<MapStreamEntry<HK, HV>> xRange(K key, Range<String> range);
 
+		default <V> List<ObjectStreamEntry<V>> xRange(K key, Range<String> range, Class<V> targetType) {
+			return xRange(key, range).stream().map(it -> StreamEntry.of(entryToObject(it, targetType)).withId(it.getId()))
+					.collect(Collectors.toList());
+		}
+
 		default <V> MapStreamEntry<HK, HV> objectToEntry(V value) {
 
-			if(value instanceof ObjectStreamEntry) {
+			if (value instanceof ObjectStreamEntry) {
 
 				ObjectStreamEntry entry = ((ObjectStreamEntry) value);
-				return StreamEntry.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue())).withId(entry.getId());
+				return StreamEntry.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue()))
+						.withId(entry.getId());
 			}
 
 			return StreamEntry.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
@@ -186,10 +203,7 @@ public class ApiSpike {
 			return getHashMapper(targetType).fromHash(entry.getValue());
 		}
 
-		default <V> List<ObjectStreamEntry<V>> xRange(K key, Range<String> range, Class<V> targetType) { // move to upper level and do not
-			// allow change of HashMapper
-			return xRange(key, range).stream().map(it -> StreamEntry.of(entryToObject(it, targetType)).withId(it.getId())).collect(Collectors.toList());
-		}
+
 
 		<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
 	}
@@ -220,7 +234,7 @@ public class ApiSpike {
 		private HashMapper<?, HK, HV> mapper;
 
 		public StreamOperationsImpl(RedisStreamCommands commands, RedisSerializer<K> keySerializer,
-				RedisSerializer<HK> hashKeySerializer, RedisSerializer<HV> hashValueSerializer) {
+				RedisSerializer<HK> hashKeySerializer, RedisSerializer<HV> hashValueSerializer, HashMapper<?, HK, HV> mapper) {
 
 			this.commands = commands;
 			this.keySerializer = keySerializer;
@@ -228,7 +242,7 @@ public class ApiSpike {
 			this.hashValueSerializer = hashValueSerializer;
 
 			this.conversionService = new DefaultConversionService();
-			this.mapper = (HashMapper<?, HK, HV>) new ObjectHashMapper();
+			this.mapper = mapper != null ? mapper : (HashMapper<?, HK, HV>) new ObjectHashMapper();
 			rcc.registerConvertersIn(conversionService);
 		}
 
@@ -448,20 +462,10 @@ public class ApiSpike {
 
 	interface MapStreamEntry<K, V> extends StreamEntry<Map<K, V>>, Iterable<Map.Entry<K, V>> {
 
-//		Map<K, V> asMap();
-
 		<K1, V1> MapBackedStreamEntry<K1, V1> map(Function<Map.Entry<K, V>, Map.Entry<K1, V1>> mapFunction);
 
 		@Override
 		MapStreamEntry<K, V> withId(EntryId id);
-	}
-
-	interface Pair<K, V> {
-
-		K getField();
-
-		V getValue();
-
 	}
 
 	static class ObjectBackedStreamEntry<V> implements ObjectStreamEntry<V> {
@@ -493,10 +497,7 @@ public class ApiSpike {
 
 		@Override
 		public String toString() {
-			return "ObjectBackedStreamEntry{" +
-					"entryId=" + entryId +
-					", value=" + value +
-					'}';
+			return "ObjectBackedStreamEntry{" + "entryId=" + entryId + ", value=" + value + '}';
 		}
 	}
 
@@ -543,22 +544,6 @@ public class ApiSpike {
 		@Override
 		public MapStreamEntry<K, V> withId(EntryId id) {
 			return new MapBackedStreamEntry<>(id, this.kvMap);
-		}
-
-		static <K, V> Pair<K, V> mapToPair(Entry<K, V> it) {
-
-			return new Pair() {
-
-				@Override
-				public Object getField() {
-					return it.getKey();
-				}
-
-				@Override
-				public Object getValue() {
-					return it.getValue();
-				}
-			};
 		}
 
 		@Override
