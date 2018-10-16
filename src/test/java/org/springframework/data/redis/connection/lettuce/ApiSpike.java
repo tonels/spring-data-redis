@@ -70,7 +70,7 @@ public class ApiSpike {
 
 		range.forEach(it -> System.out.println(it.getId() + ": " + it.asMap()));
 
-		List<String> stringRange = ops.forValue(Object.class).xRange("foo", Range.unbounded(), String.class);
+		List<String> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
 		stringRange.forEach(System.out::println);
 	}
 
@@ -86,8 +86,8 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java());
 
-		EntryId id = ops.forValue(SimpleObject.class).xAdd("key", o);
-		List<SimpleObject> list = ops.forValue(SimpleObject.class).xRange("key", Range.unbounded(), SimpleObject.class);
+		EntryId id = ops.xAdd("key", o);
+		List<SimpleObject> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
 
 		list.forEach(System.out::println);
 
@@ -111,7 +111,7 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java());
 
-		EntryId id = ops.forValue(SimpleObject.class).xAdd("key", o);
+		EntryId id = ops.xAdd("key", o);
 
 		List<StreamEntry<String, Object>> list = ops.xRange("key", Range.unbounded());
 
@@ -173,37 +173,28 @@ public class ApiSpike {
 
 	interface StreamOperations<K, HK, HV> {
 
+		default EntryId xAdd(K key, Object value) {
+			return xAdd(key, objectToEntry(value));
+		}
+
 		EntryId xAdd(K key, StreamEntry<HK, HV> entry);
 
 		List<StreamEntry<HK, HV>> xRange(K key, Range<String> range);
 
-		default <V, HK1, HV1> ValueStreamOperations<K, HK1, HV1> forValue(Class<V> type) {
-			return forValue(type, (HashMapper<V, HK1, HV1>) new ObjectHashMapper());
+		default <V> StreamEntry<HK, HV> objectToEntry(V value) {
+			return StreamEntry.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
 		}
 
-		<V, HK1, HV1> ValueStreamOperations<K, HK1, HV1> forValue(Class<V> type, HashMapper<V, HK1, HV1> mapper);
-
-		interface ValueStreamOperations<K, HK, HV> extends StreamOperations<K, HK, HV> {
-
-			default EntryId xAdd(K key, Object value) {
-				return xAdd(key, objectToEntry(value));
-			}
-
-			// range use ObjectStreamEntry -> StreamEntry<T> to have the EntryId with it.
-			default <V> List<V> xRange(K key, Range<String> range, Class<V> targetType) { // move to upper level and do not allow change of HashMapper
-				return xRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
-			}
-
-			<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
-
-			default <V> StreamEntry<HK, HV> objectToEntry(V value) {
-				return StreamEntry.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
-			}
-
-			default <V> V entryToObject(StreamEntry<HK, HV> entry, Class<V> targetType) {
-				return (V) getHashMapper(targetType).fromHash(entry.asMap());
-			}
+		default <V> V entryToObject(StreamEntry<HK, HV> entry, Class<V> targetType) {
+			return (V) getHashMapper(targetType).fromHash(entry.asMap());
 		}
+
+		default <V> List<V> xRange(K key, Range<String> range, Class<V> targetType) { // move to upper level and do not
+																																									// allow change of HashMapper
+			return xRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+		}
+
+		<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
 	}
 
 	/*
@@ -229,6 +220,8 @@ public class ApiSpike {
 		private final RedisCustomConversions rcc = new RedisCustomConversions();
 		private DefaultConversionService conversionService;
 
+		private HashMapper<?, HK, HV> mapper;
+
 		public StreamOperationsImpl(RedisStreamCommands commands, RedisSerializer<K> keySerializer,
 				RedisSerializer<HK> hashKeySerializer, RedisSerializer<HV> hashValueSerializer) {
 
@@ -238,6 +231,7 @@ public class ApiSpike {
 			this.hashValueSerializer = hashValueSerializer;
 
 			this.conversionService = new DefaultConversionService();
+			this.mapper = (HashMapper<?, HK, HV>) new ObjectHashMapper();
 			rcc.registerConvertersIn(conversionService);
 		}
 
@@ -254,9 +248,52 @@ public class ApiSpike {
 		}
 
 		@Override
-		public <V, HK1, HV1> ValueStreamOperations<K, HK1, HV1> forValue(Class<V> type, HashMapper<V, HK1, HV1> mapper) {
-			return new ValueStreamOperationsImpl<K, HK1, HV1>(commands, keySerializer, hashKeySerializer, hashValueSerializer,
-					mapper, type);
+		public <V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType) {
+
+			if (rcc.isSimpleType(targetType)) {
+
+				return new HashMapper<V, HK, HV>() {
+
+					@Override
+					public Map<HK, HV> toHash(V object) {
+						return (Map<HK, HV>) Collections.singletonMap("payload".getBytes(StandardCharsets.UTF_8),
+								serializeHashValueIfRequires((HV) object));
+					}
+
+					@Override
+					public V fromHash(Map<HK, HV> hash) {
+						Object value = hash.values().iterator().next();
+						if (ClassUtils.isAssignableValue(targetType, value)) {
+							return (V) value;
+						}
+						return (V) deserializeHashValue((byte[]) value, (Class<HV>) targetType);
+					}
+				};
+			}
+
+			if (mapper instanceof ObjectHashMapper) {
+
+				return new HashMapper<V, HK, HV>() {
+
+					@Override
+					public Map<HK, HV> toHash(V object) {
+						return (Map<HK, HV>) ((ObjectHashMapper) mapper).toObjectHash(object);
+					}
+
+					@Override
+					public V fromHash(Map<HK, HV> hash) {
+
+						Map<byte[], byte[]> map = hash.entrySet().stream()
+								.collect(Collectors.toMap(e -> conversionService.convert((Object) e.getKey(), byte[].class),
+										e -> conversionService.convert((Object) e.getValue(), byte[].class)));
+
+						return (V) mapper.fromHash((Map<HK, HV>) map);
+					}
+				};
+
+			}
+
+			return (HashMapper<V, HK, HV>) mapper;
 		}
 
 		protected byte[] serializeHashKeyIfRequired(HK key) {
@@ -339,75 +376,6 @@ public class ApiSpike {
 					return deserializeHashValue(pair.getValue(), (Class<HV>) Object.class);
 				}
 			};
-		}
-
-		class ValueStreamOperationsImpl<K, HK1, HV1> extends StreamOperationsImpl<K, HK1, HV1>
-				implements ValueStreamOperations<K, HK1, HV1> {
-
-			private HashMapper<?, HK1, HV1> mapper;
-			private final RedisCustomConversions rcc = new RedisCustomConversions();
-			private DefaultConversionService conversionService;
-
-			public ValueStreamOperationsImpl(RedisStreamCommands commands, RedisSerializer<K> keySerializer,
-					RedisSerializer<HK1> hashKeySerializer, RedisSerializer<HV1> hashValueSerializer,
-					HashMapper<?, HK1, HV1> mapper, Class<?> targetType) {
-				super(commands, keySerializer, hashKeySerializer, hashValueSerializer);
-
-				conversionService = new DefaultConversionService();
-				rcc.registerConvertersIn(conversionService);
-				this.mapper = mapper;
-			}
-
-			@Override
-			public <V> HashMapper<V, HK1, HV1> getHashMapper(Class<V> targetType) {
-
-				if (rcc.isSimpleType(targetType)) {
-
-					return new HashMapper<V, HK1, HV1>() {
-
-						@Override
-						public Map<HK1, HV1> toHash(V object) {
-							return (Map<HK1, HV1>) Collections.singletonMap("payload".getBytes(StandardCharsets.UTF_8),
-									serializeHashValueIfRequires((HV1)object));
-						}
-
-						@Override
-						public V fromHash(Map<HK1, HV1> hash) {
-							Object value = hash.values().iterator().next();
-							if(ClassUtils.isAssignableValue(targetType, value)) {
-								return (V) value;
-							}
-							return (V) deserializeHashValue((byte[])value, (Class<HV1>)targetType);
-						}
-					};
-				}
-
-				if(mapper instanceof ObjectHashMapper) {
-
-					return new HashMapper<V, HK1, HV1>() {
-
-						@Override
-						public Map<HK1, HV1> toHash(V object) {
-							return (Map<HK1, HV1>) ((ObjectHashMapper)mapper).toObjectHash(object);
-						}
-
-						@Override
-						public V fromHash(Map<HK1, HV1> hash) {
-
-							Map<byte[], byte[]> map = hash.entrySet().stream().collect(Collectors.toMap(
-									e -> conversionService.convert((Object)e.getKey(), byte[].class),
-									e -> conversionService.convert((Object)e.getValue(), byte[].class)
-							));
-
-
-							return (V) mapper.fromHash((Map<HK1, HV1>)map);
-						}
-					};
-
-				}
-
-				return (HashMapper<V, HK1, HV1>) mapper;
-			}
 		}
 	}
 
@@ -522,10 +490,7 @@ public class ApiSpike {
 
 		@Override
 		public String toString() {
-			return "MapBackedStreamEntry{" +
-					"entryId=" + entryId +
-					", kvMap=" + kvMap +
-					'}';
+			return "MapBackedStreamEntry{" + "entryId=" + entryId + ", kvMap=" + kvMap + '}';
 		}
 	}
 
