@@ -68,9 +68,9 @@ public class ApiSpike {
 		EntryId id = ops.xAdd("foo", StreamEntry.of(Collections.singletonMap("field", "value")));
 		List<MapStreamEntry<String, Object>> range = ops.xRange("foo", Range.unbounded());
 
-		range.forEach(it -> System.out.println(it.getId() + ": " + it.asMap()));
+		range.forEach(it -> System.out.println(it.getId() + ": " + it.getValue()));
 
-		List<String> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
+		List<ObjectStreamEntry<String>> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
 		stringRange.forEach(System.out::println);
 	}
 
@@ -87,16 +87,9 @@ public class ApiSpike {
 				RedisSerializer.string(), RedisSerializer.java());
 
 		EntryId id = ops.xAdd("key", o);
-		List<SimpleObject> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
+		List<ObjectStreamEntry<SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
 
 		list.forEach(System.out::println);
-
-		// List<StreamEntry<String, Object>> range = ops.xRange("foo", Range.unbounded());
-		//
-		// range.forEach(it -> System.out.println(it.getId() + ": " + it.asMap()));
-		//
-		// List<String> stringRange = ops.forValue(Object.class).xRange("foo", Range.unbounded(), String.class);
-		// stringRange.forEach(System.out::println);
 	}
 
 	@Test
@@ -116,13 +109,6 @@ public class ApiSpike {
 		List<MapStreamEntry<String, Object>> list = ops.xRange("key", Range.unbounded());
 
 		list.forEach(System.out::println);
-
-		// List<StreamEntry<String, Object>> range = ops.xRange("foo", Range.unbounded());
-		//
-		// range.forEach(it -> System.out.println(it.getId() + ": " + it.asMap()));
-		//
-		// List<String> stringRange = ops.forValue(Object.class).xRange("foo", Range.unbounded(), String.class);
-		// stringRange.forEach(System.out::println);
 	}
 
 	@Data
@@ -159,7 +145,7 @@ public class ApiSpike {
 
 		@Override
 		public EntryId xAdd(byte[] key, MapStreamEntry<byte[], byte[]> entry) {
-			return EntryId.of(connection.getConnection().xadd(key, entry.asMap()));
+			return EntryId.of(connection.getConnection().xadd(key, entry.getValue()));
 		}
 
 		@Override
@@ -188,6 +174,7 @@ public class ApiSpike {
 		default <V> MapStreamEntry<HK, HV> objectToEntry(V value) {
 
 			if(value instanceof ObjectStreamEntry) {
+
 				ObjectStreamEntry entry = ((ObjectStreamEntry) value);
 				return StreamEntry.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue())).withId(entry.getId());
 			}
@@ -196,12 +183,12 @@ public class ApiSpike {
 		}
 
 		default <V> V entryToObject(MapStreamEntry<HK, HV> entry, Class<V> targetType) {
-			return getHashMapper(targetType).fromHash(entry.asMap());
+			return getHashMapper(targetType).fromHash(entry.getValue());
 		}
 
-		default <V> List<V> xRange(K key, Range<String> range, Class<V> targetType) { // move to upper level and do not
+		default <V> List<ObjectStreamEntry<V>> xRange(K key, Range<String> range, Class<V> targetType) { // move to upper level and do not
 			// allow change of HashMapper
-			return xRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+			return xRange(key, range).stream().map(it -> StreamEntry.of(entryToObject(it, targetType)).withId(it.getId())).collect(Collectors.toList());
 		}
 
 		<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
@@ -431,10 +418,12 @@ public class ApiSpike {
 		}
 	}
 
-	interface StreamEntry<V> extends Iterable<V> {
+	interface StreamEntry<V> {
 
 		@Nullable
 		EntryId getId();
+
+		V getValue();
 
 		static <K, V> MapStreamEntry<K, V> of(Map<K, V> map) {
 			return new MapBackedStreamEntry<>(null, map);
@@ -449,10 +438,6 @@ public class ApiSpike {
 
 	interface ObjectStreamEntry<V> extends StreamEntry<V> {
 
-		default V getValue() {
-			return iterator().next();
-		}
-
 		default <K, V1> MapStreamEntry<K, V1> toMapEntry(HashMapper<V, K, V1> mapper) {
 			return StreamEntry.of(mapper.toHash(getValue())).withId(this.getId());
 		}
@@ -461,12 +446,9 @@ public class ApiSpike {
 		ObjectStreamEntry<V> withId(EntryId id);
 	}
 
-	interface MapStreamEntry<K, V> extends StreamEntry<Map.Entry<K, V>> {
+	interface MapStreamEntry<K, V> extends StreamEntry<Map<K, V>>, Iterable<Map.Entry<K, V>> {
 
-		@Nullable
-		EntryId getId();
-
-		Map<K, V> asMap();
+//		Map<K, V> asMap();
 
 		<K1, V1> MapBackedStreamEntry<K1, V1> map(Function<Map.Entry<K, V>, Map.Entry<K1, V1>> mapFunction);
 
@@ -500,13 +482,21 @@ public class ApiSpike {
 		}
 
 		@Override
-		public Iterator<V> iterator() {
-			return Collections.singleton(value).iterator();
+		public V getValue() {
+			return value;
 		}
 
 		@Override
 		public ObjectStreamEntry<V> withId(EntryId id) {
 			return new ObjectBackedStreamEntry<>(id, value);
+		}
+
+		@Override
+		public String toString() {
+			return "ObjectBackedStreamEntry{" +
+					"entryId=" + entryId +
+					", value=" + value +
+					'}';
 		}
 	}
 
@@ -546,7 +536,7 @@ public class ApiSpike {
 		}
 
 		@Override
-		public Map<K, V> asMap() {
+		public Map<K, V> getValue() {
 			return kvMap;
 		}
 
