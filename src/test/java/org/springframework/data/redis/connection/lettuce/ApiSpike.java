@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
+import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.core.convert.RedisCustomConversions;
 import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.data.redis.hash.Jackson2HashMapper;
@@ -28,8 +29,6 @@ import org.springframework.data.redis.hash.ObjectHashMapper;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.NumberUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Christoph Strobl
@@ -156,7 +155,7 @@ public class ApiSpike {
 
 		@Override
 		public EntryId xAdd(byte[] key, MapStreamEntry<byte[], byte[]> entry) {
-			return EntryId.of(connection.getConnection().xadd(key, entry.getValue()));
+			return org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(connection.getConnection().xadd(key, entry.getValue()));
 		}
 
 		@Override
@@ -164,7 +163,7 @@ public class ApiSpike {
 
 			List<StreamMessage<byte[], byte[]>> raw = connection.getConnection().xrange(key,
 					io.lettuce.core.Range.unbounded(), Limit.unlimited());
-			return raw.stream().map(it -> new RawEntry(EntryId.of(it.getId()), it.getBody())).collect(Collectors.toList());
+			return raw.stream().map(it -> new RawEntry(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId()), it.getBody())).collect(Collectors.toList());
 		}
 	}
 
@@ -399,36 +398,6 @@ public class ApiSpike {
 				}
 
 			};
-		}
-	}
-
-	static class EntryId {
-
-		final String raw;
-
-		public EntryId(String raw) {
-			this.raw = raw;
-		}
-
-		static EntryId of(String value) {
-			return new EntryId(value);
-		}
-
-		Long getTimestamp() {
-			return value(0);
-		}
-
-		Long getSequence() {
-			return value(1);
-		}
-
-		Long value(int index) {
-			return NumberUtils.parseNumber(StringUtils.split(raw, "-")[index], Long.class);
-		}
-
-		@Override
-		public String toString() {
-			return raw;
 		}
 	}
 
