@@ -165,7 +165,8 @@ public class ApiSpike {
 			List<StreamMessage<byte[], byte[]>> raw = connection.getConnection().xrange(key,
 					io.lettuce.core.Range.unbounded(), Limit.unlimited());
 			return raw.stream()
-					.map(it -> StreamRecords.rawBytes(it.getBody()).withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId())))
+					.map(it -> StreamRecords.rawBytes(it.getBody())
+							.withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId())))
 					.collect(Collectors.toList());
 		}
 	}
@@ -180,13 +181,12 @@ public class ApiSpike {
 			return xAdd(key, objectToEntry(value));
 		}
 
-		EntryId xAdd(K key, MapRecord<HK, HV> entry);
+		EntryId xAdd(K key, MapRecord<? extends HK, ? extends HV> entry);
 
 		List<MapRecord<HK, HV>> xRange(K key, Range<String> range);
 
 		default <V> List<ObjectRecord<V>> xRange(K key, Range<String> range, Class<V> targetType) {
-			return xRange(key, range).stream().map(it -> Record.of(entryToObject(it, targetType)).withId(it.getId()))
-					.collect(Collectors.toList());
+			return xRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
 		}
 
 		default <V> MapRecord<HK, HV> objectToEntry(V value) {
@@ -201,8 +201,8 @@ public class ApiSpike {
 			return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
 		}
 
-		default <V> V entryToObject(MapRecord<HK, HV> entry, Class<V> targetType) {
-			return getHashMapper(targetType).fromHash(entry.getValue());
+		default <V> ObjectRecord<V> entryToObject(MapRecord<HK, HV> entry, Class<V> targetType) {
+			return entry.toObjectRecord(getHashMapper(targetType));
 		}
 
 		<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
@@ -247,7 +247,7 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(K key, MapRecord<HK, HV> entry) {
+		public EntryId xAdd(K key, MapRecord<? extends HK, ? extends HV> entry) {
 			return commands.xAdd(serializeKeyIfRequired(key), entry.map(this::mapToBinary));
 		}
 
@@ -358,7 +358,7 @@ public class ApiSpike {
 			return serializer.serialize(_value);
 		}
 
-		private Map.Entry<byte[], byte[]> mapToBinary(Map.Entry<HK, HV> it) {
+		private Map.Entry<byte[], byte[]> mapToBinary(Map.Entry<? extends HK, ? extends HV> it) {
 
 			return new Map.Entry<byte[], byte[]>() {
 

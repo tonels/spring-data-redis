@@ -748,8 +748,8 @@ public interface RedisStreamCommands {
 		 * @param <OV> type of the value backing the {@link ObjectRecord}.
 		 * @return new instance of {@link ObjectRecord}.
 		 */
-		default <OV> ObjectRecord<OV> toObjectRecord(HashMapper<OV, K, V> mapper) {
-			return Record.of(mapper.fromHash(getValue())).withId(getId());
+		default <OV> ObjectRecord<OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
+			return Record.of((OV) (mapper).fromHash((Map) getValue())).withId(getId());
 		}
 	}
 }
