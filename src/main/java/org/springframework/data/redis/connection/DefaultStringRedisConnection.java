@@ -3795,7 +3795,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
+	public List<MapRecord<byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
 			Limit limit) {
 		return delegate.xRange(key, range, limit);
 	}

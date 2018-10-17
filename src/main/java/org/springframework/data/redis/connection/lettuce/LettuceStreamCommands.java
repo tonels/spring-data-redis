@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import org.springframework.dao.DataAccessException;
@@ -236,7 +235,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit) {
+	public List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -247,15 +246,18 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.recordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.recordListConverter()));
 				return null;
 			}
-			return StreamConverters.toStreamMessages(getConnection().xrange(key, lettuceRange, lettuceLimit));
+
+			return StreamConverters.<byte[], byte[]> recordListConverter()
+					.convert(getConnection().xrange(key, lettuceRange, lettuceLimit));
+
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}

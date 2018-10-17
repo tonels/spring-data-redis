@@ -22,6 +22,9 @@ import java.util.List;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.redis.connection.RedisStreamCommands;
+import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.convert.ListConverter;
 
@@ -32,6 +35,7 @@ import org.springframework.data.redis.connection.convert.ListConverter;
  * serialization/deserialization happens here).
  *
  * @author Mark Paluch
+ * @author Christoph Strobl
  * @since 2.2
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -101,6 +105,14 @@ class StreamConverters {
 		public RedisStreamCommands.StreamMessage<Object, Object> convert(StreamMessage<Object, Object> source) {
 			return new RedisStreamCommands.StreamMessage<>(source.getStream(), source.getId(), source.getBody());
 		}
+	}
+
+	public static <K, V> Converter<List<StreamMessage<K, V>>, List<MapRecord<K, V>>> recordListConverter() {
+		return new ListConverter<>(recordConverter());
+	}
+
+	public static <K, V> Converter<StreamMessage<K, V>, MapRecord<K, V>> recordConverter() {
+		return (it) -> Record.of(it.getBody()).withId(EntryId.of(it.getId()));
 	}
 
 	/**

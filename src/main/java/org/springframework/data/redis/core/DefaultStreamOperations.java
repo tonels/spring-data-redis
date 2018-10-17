@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -137,7 +138,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Nullable
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-				return connection.xRange(rawKey(key), range, limit);
+				return connection.xRange(rawKey(key), range, limit).stream().map(it -> new StreamMessage<>(rawKey(key), it.getId().getValue(), it.getValue())).collect(Collectors.toList());
 			}
 		}, true);
 	}

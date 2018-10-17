@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -140,7 +141,20 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default List<StreamMessage<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
-		return xRange(key, range, Limit.unlimited());
+
+		List<MapRecord<byte[], byte[]>> rawResult = xRange(key, range, Limit.unlimited());
+
+		/*
+		 * why not Java? why?
+		 * return rawResult.stream().map(it -> new StreamMessage(key, it.getId().getValue(), it.getValue())).collect(Collectors.toList());
+		 */
+		List<StreamMessage<byte[], byte[]>> messages = new ArrayList<>();
+		for (MapRecord<byte[], byte[]> record : rawResult) {
+
+			messages.add(new StreamMessage(key, record.getId().getValue(), record.getValue()));
+		}
+
+		return messages;
 	}
 
 	/**
@@ -153,7 +167,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit);
+	List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
