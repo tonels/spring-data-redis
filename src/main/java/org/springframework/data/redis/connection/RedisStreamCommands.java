@@ -64,7 +64,18 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	String xAdd(byte[] key, Map<byte[], byte[]> body);
+	default String xAdd(byte[] key, Map<byte[], byte[]> body) {
+		return xAdd(key, Record.of(body)).getValue();
+	}
+
+	/**
+	 * Append the given {@link MapRecord record} to the stream at {@literal key}.
+	 *
+	 * @param key the stream key.
+	 * @param record the {@link MapRecord record} to append.
+	 * @return the {@link EntryId entry-id} after save.
+	 */
+	EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the

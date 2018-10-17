@@ -447,6 +447,13 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
+	default EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record) {
+		return streamCommands().xAdd(key, record);
+	}
+
+	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
+	@Override
+	@Deprecated
 	default Long xDel(byte[] key, String... messageIds) {
 		return streamCommands().xDel(key, messageIds);
 	}

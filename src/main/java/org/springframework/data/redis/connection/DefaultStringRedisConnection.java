@@ -3738,11 +3738,11 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], java.util.Map)
+	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], MapRecord)
 	 */
 	@Override
-	public String xAdd(byte[] key, Map<byte[], byte[]> body) {
-		return delegate.xAdd(key, body);
+	public EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record) {
+		return delegate.xAdd(key, record);
 	}
 
 	/*

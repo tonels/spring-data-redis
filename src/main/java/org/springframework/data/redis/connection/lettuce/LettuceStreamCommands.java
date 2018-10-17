@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.connection.lettuce;
 
+import io.lettuce.core.XAddArgs;
 import io.lettuce.core.XReadArgs;
 import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 import io.lettuce.core.cluster.api.sync.RedisClusterCommands;
@@ -71,24 +72,27 @@ class LettuceStreamCommands implements RedisStreamCommands {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], java.util.Map)
+	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], MapRecord)
 	 */
 	@Override
-	public String xAdd(byte[] key, Map<byte[], byte[]> body) {
+	public EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record) {
 
 		Assert.notNull(key, "Key must not be null!");
-		Assert.notNull(body, "Message body must not be null!");
+		Assert.notNull(record, "Record must not be null!");
+
+		XAddArgs args = new XAddArgs();
+		args.id(record.getId().getValue());
 
 		try {
 			if (isPipelined()) {
-				pipeline(connection.newLettuceResult(getAsyncConnection().xadd(key, body)));
+				pipeline(connection.newLettuceResult(getAsyncConnection().xadd(key, args, record.getValue())));
 				return null;
 			}
 			if (isQueueing()) {
-				transaction(connection.newLettuceResult(getAsyncConnection().xadd(key, body)));
+				transaction(connection.newLettuceResult(getAsyncConnection().xadd(key, args, record.getValue())));
 				return null;
 			}
-			return getConnection().xadd(key, body);
+			return EntryId.of(getConnection().xadd(key, args, record.getValue()));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
