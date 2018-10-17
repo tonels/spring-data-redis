@@ -22,9 +22,12 @@ import lombok.ToString;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.NumberUtils;
@@ -35,8 +38,8 @@ import org.springframework.util.StringUtils;
  *
  * @author Mark Paluch
  * @author Christoph Strobl
- * @since 2.2
  * @see <a href="https://redis.io/topics/streams-intro">Redis Documentation - Streams</a>
+ * @since 2.2
  */
 public interface RedisStreamCommands {
 
@@ -489,8 +492,9 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * The id of a single entry within a Stream composed of two parts: {@literal <millisecondsTime>-<sequenceNumber>}.
-	 * 
+	 * The id of a single {@link Record} within a stream. Composed of two parts:
+	 * {@literal <millisecondsTime>-<sequenceNumber>}.
+	 *
 	 * @author Christoph Strobl
 	 * @see <a href="https://redis.io/topics/streams-intro#entry-ids">Redis Documentation - Entriy ID</a>
 	 */
@@ -619,6 +623,133 @@ public interface RedisStreamCommands {
 
 		private Long value(int index) {
 			return NumberUtils.parseNumber(StringUtils.split(raw, DELIMINATOR)[index], Long.class);
+		}
+	}
+
+	/**
+	 * A single entry in the stream consisting of the {@link EntryId entry-id} and the actual entry-value (typically a
+	 * collection of {@link MapRecord field/value pairs}).
+	 *
+	 * @param <V> the type backing the {@link Record}.
+	 * @author Christoph Strobl
+	 * @see <a href="https://redis.io/topics/streams-intro#streams-basics">Redis Documentation - Stream Basics</a>
+	 */
+	interface Record<V> {
+
+		/**
+		 * The id of the entry inside the stream.
+		 *
+		 * @return never {@literal null}.
+		 */
+		EntryId getId();
+
+		/**
+		 * @return the actual content. Never {@literal null}.
+		 */
+		V getValue();
+
+		/**
+		 * Create a new {@link MapRecord} instance backed by the given {@link Map} holding {@literal field/value} pairs.
+		 *
+		 * @param map the raw map.
+		 * @param <K> the key type of the given {@link Map}.
+		 * @param <V> the value type of the given {@link Map}.
+		 * @return new instance of {@link MapRecord}.
+		 */
+		static <K, V> MapRecord<K, V> of(Map<K, V> map) {
+
+			Assert.notNull(map, "Map must not be null!");
+			return StreamRecords.mapBacked(map);
+		}
+
+		/**
+		 * Create a new {@link ObjectRecord} instance backed by the given {@literal value}. The value may be a simple type,
+		 * like {@link String} or a complex one.
+		 *
+		 * @param value the value to persist.
+		 * @param <V> the type of the backing value.
+		 * @return new instance of {@link MapRecord}.
+		 */
+		static <V> ObjectRecord<V> of(V value) {
+
+			Assert.notNull(value, "Value must not be null!");
+			return StreamRecords.objectBacked(value);
+		}
+
+		/**
+		 * Create a new instance of {@link Record} with the given {@link EntryId}.
+		 *
+		 * @param id must not be {@literal null}.
+		 * @return new instance of {@link Record}.
+		 */
+		Record<V> withId(EntryId id);
+	}
+
+	/**
+	 * A {@link Record} within the stream mapped to a single object. This may be a simple type, such as {@link String} or
+	 * a complex one.
+	 *
+	 * @param <V> the type of the backing Object.
+	 */
+	interface ObjectRecord<V> extends Record<V> {
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
+		 */
+		@Override
+		ObjectRecord<V> withId(EntryId id);
+
+		/**
+		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
+		 * {@link EntryId id} is carried over to the new instance.
+		 *
+		 * @param mapper must not be {@literal null}.
+		 * @param <HK> the key type of the resulting {@link MapRecord}.
+		 * @param <HV> the value type of the resulting {@link MapRecord}.
+		 * @return new instance of {@link MapRecord}.
+		 */
+		default <HK, HV> MapRecord<HK, HV> toMapRecord(HashMapper<? super V, HK, HV> mapper) {
+			return Record.of(mapper.toHash(getValue())).withId(getId());
+		}
+	}
+
+	/**
+	 * A {@link Record} within the stream backed by a collection of {@literal field/value} paris.
+	 *
+	 * @param <K> the field type of the backing collection.
+	 * @param <V> the value type of the backing collection.
+	 */
+	interface MapRecord<K, V> extends Record<Map<K, V>>, Iterable<Map.Entry<K, V>> {
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
+		 */
+		@Override
+		MapRecord<K, V> withId(EntryId id);
+
+		/**
+		 * Apply the given {@link Function mapFunction} to each and every entry in the backing collection to create a new
+		 * {@link MapRecord}.
+		 *
+		 * @param mapFunction must not be {@literal null}.
+		 * @param <HK> the field type of the new backing collection.
+		 * @param <HV> the value type of the new backing collection.
+		 * @return new instance of {@link MapRecord}.
+		 */
+		<HK, HV> MapRecord<HK, HV> map(Function<Entry<K, V>, Entry<HK, HV>> mapFunction);
+
+		/**
+		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
+		 * {@link EntryId id} is carried over to the new instance.
+		 *
+		 * @param mapper must not be {@literal null}.
+		 * @param <OV> type of the value backing the {@link ObjectRecord}.
+		 * @return new instance of {@link ObjectRecord}.
+		 */
+		default <OV> ObjectRecord<OV> toObjectRecord(HashMapper<OV, K, V> mapper) {
+			return Record.of(mapper.fromHash(getValue())).withId(getId());
 		}
 	}
 }

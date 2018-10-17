@@ -9,11 +9,8 @@ import lombok.Data;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.After;
@@ -22,12 +19,15 @@ import org.junit.Test;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
+import org.springframework.data.redis.connection.StreamRecords;
 import org.springframework.data.redis.core.convert.RedisCustomConversions;
 import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.data.redis.hash.Jackson2HashMapper;
 import org.springframework.data.redis.hash.ObjectHashMapper;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -75,12 +75,12 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java(), null);
 
-		EntryId id = ops.xAdd("foo", StreamEntry.of(Collections.singletonMap("field", "value")));
-		List<MapStreamEntry<String, Object>> range = ops.xRange("foo", Range.unbounded());
+		EntryId id = ops.xAdd("foo", Record.of(Collections.singletonMap("field", "value")));
+		List<MapRecord<String, Object>> range = ops.xRange("foo", Range.unbounded());
 
 		range.forEach(it -> System.out.println(it.getId() + ": " + it.getValue()));
 
-		List<ObjectStreamEntry<String>> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
+		List<ObjectRecord<String>> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
 		stringRange.forEach(System.out::println);
 	}
 
@@ -97,7 +97,7 @@ public class ApiSpike {
 				RedisSerializer.string(), RedisSerializer.java(), new Jackson2HashMapper(false));
 
 		EntryId id = ops.xAdd("key", o);
-		List<ObjectStreamEntry<SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
+		List<ObjectRecord<SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
 
 		list.forEach(System.out::println);
 	}
@@ -116,7 +116,7 @@ public class ApiSpike {
 
 		EntryId id = ops.xAdd("key", o);
 
-		List<MapStreamEntry<String, Object>> list = ops.xRange("key", Range.unbounded());
+		List<MapRecord<String, Object>> list = ops.xRange("key", Range.unbounded());
 
 		list.forEach(System.out::println);
 	}
@@ -139,9 +139,9 @@ public class ApiSpike {
 
 	interface RedisStreamCommands {
 
-		EntryId xAdd(byte[] key, MapStreamEntry<byte[], byte[]> entry);
+		EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> entry);
 
-		List<MapStreamEntry<byte[], byte[]>> xRange(byte[] key, Range<String> range);
+		List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range);
 
 	}
 
@@ -154,55 +154,56 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(byte[] key, MapStreamEntry<byte[], byte[]> entry) {
-			return org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(connection.getConnection().xadd(key, entry.getValue()));
+		public EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> entry) {
+			return org.springframework.data.redis.connection.RedisStreamCommands.EntryId
+					.of(connection.getConnection().xadd(key, entry.getValue()));
 		}
 
 		@Override
-		public List<MapStreamEntry<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
+		public List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
 
 			List<StreamMessage<byte[], byte[]>> raw = connection.getConnection().xrange(key,
 					io.lettuce.core.Range.unbounded(), Limit.unlimited());
-			return raw.stream().map(it -> new RawEntry(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId()), it.getBody())).collect(Collectors.toList());
+			return raw.stream()
+					.map(it -> StreamRecords.rawBytes(it.getBody()).withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId())))
+					.collect(Collectors.toList());
 		}
 	}
 
 	interface StreamOperations<K, HK, HV> {
 
 		default EntryId xAdd(K key, Object value) {
-			return xAdd(key, StreamEntry.of(value));
+			return xAdd(key, Record.of(value));
 		}
 
-		default EntryId xAdd(K key, StreamEntry<?> value) {
+		default EntryId xAdd(K key, Record<?> value) {
 			return xAdd(key, objectToEntry(value));
 		}
 
-		EntryId xAdd(K key, MapStreamEntry<HK, HV> entry);
+		EntryId xAdd(K key, MapRecord<HK, HV> entry);
 
-		List<MapStreamEntry<HK, HV>> xRange(K key, Range<String> range);
+		List<MapRecord<HK, HV>> xRange(K key, Range<String> range);
 
-		default <V> List<ObjectStreamEntry<V>> xRange(K key, Range<String> range, Class<V> targetType) {
-			return xRange(key, range).stream().map(it -> StreamEntry.of(entryToObject(it, targetType)).withId(it.getId()))
+		default <V> List<ObjectRecord<V>> xRange(K key, Range<String> range, Class<V> targetType) {
+			return xRange(key, range).stream().map(it -> Record.of(entryToObject(it, targetType)).withId(it.getId()))
 					.collect(Collectors.toList());
 		}
 
-		default <V> MapStreamEntry<HK, HV> objectToEntry(V value) {
+		default <V> MapRecord<HK, HV> objectToEntry(V value) {
 
-			if (value instanceof ObjectStreamEntry) {
+			if (value instanceof ObjectRecord) {
 
-				ObjectStreamEntry entry = ((ObjectStreamEntry) value);
-				return StreamEntry.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue()))
+				ObjectRecord entry = ((ObjectRecord) value);
+				return Record.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue()))
 						.withId(entry.getId());
 			}
 
-			return StreamEntry.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
+			return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
 		}
 
-		default <V> V entryToObject(MapStreamEntry<HK, HV> entry, Class<V> targetType) {
+		default <V> V entryToObject(MapRecord<HK, HV> entry, Class<V> targetType) {
 			return getHashMapper(targetType).fromHash(entry.getValue());
 		}
-
-
 
 		<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
 	}
@@ -246,12 +247,12 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(K key, MapStreamEntry<HK, HV> entry) {
+		public EntryId xAdd(K key, MapRecord<HK, HV> entry) {
 			return commands.xAdd(serializeKeyIfRequired(key), entry.map(this::mapToBinary));
 		}
 
 		@Override
-		public List<MapStreamEntry<HK, HV>> xRange(K key, Range<String> range) {
+		public List<MapRecord<HK, HV>> xRange(K key, Range<String> range) {
 
 			return commands.xRange(serializeKeyIfRequired(key), range).stream().map(it -> it.map(this::mapToObject))
 					.collect(Collectors.toList());
@@ -398,134 +399,6 @@ public class ApiSpike {
 				}
 
 			};
-		}
-	}
-
-	interface StreamEntry<V> {
-
-		@Nullable
-		EntryId getId();
-
-		V getValue();
-
-		static <K, V> MapStreamEntry<K, V> of(Map<K, V> map) {
-			return new MapBackedStreamEntry<>(null, map);
-		}
-
-		static <V> ObjectStreamEntry<V> of(V value) {
-			return new ObjectBackedStreamEntry<>(null, value);
-		}
-
-		StreamEntry<V> withId(EntryId id);
-	}
-
-	interface ObjectStreamEntry<V> extends StreamEntry<V> {
-
-		default <K, V1> MapStreamEntry<K, V1> toMapEntry(HashMapper<V, K, V1> mapper) {
-			return StreamEntry.of(mapper.toHash(getValue())).withId(this.getId());
-		}
-
-		@Override
-		ObjectStreamEntry<V> withId(EntryId id);
-	}
-
-	interface MapStreamEntry<K, V> extends StreamEntry<Map<K, V>>, Iterable<Map.Entry<K, V>> {
-
-		<K1, V1> MapBackedStreamEntry<K1, V1> map(Function<Map.Entry<K, V>, Map.Entry<K1, V1>> mapFunction);
-
-		@Override
-		MapStreamEntry<K, V> withId(EntryId id);
-	}
-
-	static class ObjectBackedStreamEntry<V> implements ObjectStreamEntry<V> {
-
-		private @Nullable EntryId entryId;
-		private final V value;
-
-		public ObjectBackedStreamEntry(@Nullable EntryId entryId, V value) {
-
-			this.entryId = entryId;
-			this.value = value;
-		}
-
-		@Nullable
-		@Override
-		public EntryId getId() {
-			return entryId;
-		}
-
-		@Override
-		public V getValue() {
-			return value;
-		}
-
-		@Override
-		public ObjectStreamEntry<V> withId(EntryId id) {
-			return new ObjectBackedStreamEntry<>(id, value);
-		}
-
-		@Override
-		public String toString() {
-			return "ObjectBackedStreamEntry{" + "entryId=" + entryId + ", value=" + value + '}';
-		}
-	}
-
-	static class MapBackedStreamEntry<K, V> implements MapStreamEntry<K, V> {
-
-		private @Nullable EntryId entryId;
-		private final Map<K, V> kvMap;
-
-		MapBackedStreamEntry(@Nullable EntryId entryId, Map<K, V> kvMap) {
-
-			this.entryId = entryId;
-			this.kvMap = kvMap;
-		}
-
-		@Nullable
-		@Override
-		public EntryId getId() {
-			return entryId;
-		}
-
-		@Override
-		public <K1, V1> MapBackedStreamEntry<K1, V1> map(Function<Map.Entry<K, V>, Map.Entry<K1, V1>> mapFunction) {
-
-			Map<K1, V1> mapped = new LinkedHashMap<>(kvMap.size(), 1);
-			iterator().forEachRemaining(it -> {
-
-				Map.Entry<K1, V1> mappedPair = mapFunction.apply(it);
-				mapped.put(mappedPair.getKey(), mappedPair.getValue());
-			});
-
-			return new MapBackedStreamEntry<>(entryId, mapped);
-		}
-
-		@Override
-		public Iterator<Map.Entry<K, V>> iterator() {
-			return kvMap.entrySet().iterator();
-		}
-
-		@Override
-		public Map<K, V> getValue() {
-			return kvMap;
-		}
-
-		@Override
-		public MapStreamEntry<K, V> withId(EntryId id) {
-			return new MapBackedStreamEntry<>(id, this.kvMap);
-		}
-
-		@Override
-		public String toString() {
-			return "MapBackedStreamEntry{" + "entryId=" + entryId + ", kvMap=" + kvMap + '}';
-		}
-
-	}
-
-	static class RawEntry extends MapBackedStreamEntry<byte[], byte[]> {
-
-		RawEntry(@Nullable EntryId entryId, Map<byte[], byte[]> map) {
-			super(entryId, map);
 		}
 	}
 
