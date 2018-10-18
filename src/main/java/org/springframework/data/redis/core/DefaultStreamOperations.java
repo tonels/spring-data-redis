@@ -24,7 +24,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -154,7 +156,9 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Nullable
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-				return connection.xRead(readOptions, rawStreamOffsets(streams));
+
+				List<MapRecord<byte[], byte[], byte[]>> x = connection.xRead(readOptions, rawStreamOffsets(streams));
+				return RedisStreamCommands.mapToStreamMessage(x);
 			}
 		}, true);
 	}

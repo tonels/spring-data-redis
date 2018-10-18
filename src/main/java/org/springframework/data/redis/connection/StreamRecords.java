@@ -20,34 +20,80 @@ import org.springframework.lang.Nullable;
  */
 public class StreamRecords {
 
-	public static MapRecord<byte[], byte[]> rawBytes(Map<byte[], byte[]> raw) {
-		return new RawEntry(EntryId.autoGenerate(), raw);
+	public static MapRecord<byte[], byte[], byte[]> rawBytes(Map<byte[], byte[]> raw) {
+		return new RawEntry(null, EntryId.autoGenerate(), raw);
 	}
 
-	public static <K, V> MapRecord<K, V> mapBacked(Map<K, V> map) {
-		return new MapBackedRecord<>(EntryId.autoGenerate(), map);
+	public static <S, K, V> MapRecord<S, K, V> mapBacked(Map<K, V> map) {
+		return new MapBackedRecord<>(null, EntryId.autoGenerate(), map);
 	}
 
-	public static <V> ObjectRecord<V> objectBacked(V value) {
-		return new ObjectBackedRecord<>(EntryId.autoGenerate(), value);
+	public static <S, V> ObjectRecord<S, V> objectBacked(V value) {
+		return new ObjectBackedRecord<>(null, EntryId.autoGenerate(), value);
 	}
 
-	static class RawEntry extends MapBackedRecord<byte[], byte[]> {
+	public static RecordBuilder newRecord() {
+		return new RecordBuilder(null, EntryId.autoGenerate());
+	}
 
-		public RawEntry(EntryId entryId, Map<byte[], byte[]> map) {
-			super(entryId, map);
+	static class RawEntry extends MapBackedRecord<byte[], byte[], byte[]> {
+		public RawEntry(byte[] stream, EntryId entryId, Map<byte[], byte[]> map) {
+			super(stream, entryId, map);
 		}
 	}
 
-	static class MapBackedRecord<K, V> implements MapRecord<K, V> {
+	public static class RecordBuilder<S> {
 
+		private EntryId id;
+		private S stream;
+
+		RecordBuilder(@Nullable S stream, EntryId entryId) {
+
+			this.stream = stream;
+			this.id = entryId;
+		}
+
+		public <STREAM_KEY> RecordBuilder<STREAM_KEY> in(STREAM_KEY stream) {
+			return new RecordBuilder<>(stream, id);
+		}
+
+		public RecordBuilder<S> withId(String id) {
+			return withId(EntryId.of(id));
+		}
+
+		public RecordBuilder<S> withId(EntryId id) {
+
+			this.id = id;
+			return this;
+		}
+
+		public <K, V> MapRecord<S, K, V> ofMap(Map<K, V> map) {
+			return new MapBackedRecord<>(stream, id, map);
+		}
+
+		public <V> ObjectRecord<S, V> ofObject(V value) {
+			return new ObjectBackedRecord<>(stream, id, value);
+		}
+
+	}
+
+	static class MapBackedRecord<S, K, V> implements MapRecord<S, K, V> {
+
+		private @Nullable S stream;
 		private EntryId entryId;
 		private final Map<K, V> kvMap;
 
-		MapBackedRecord(EntryId entryId, Map<K, V> kvMap) {
+		MapBackedRecord(S stream, EntryId entryId, Map<K, V> kvMap) {
 
+			this.stream = stream;
 			this.entryId = entryId;
 			this.kvMap = kvMap;
+		}
+
+		@Nullable
+		@Override
+		public S getStream() {
+			return stream;
 		}
 
 		@Nullable
@@ -57,7 +103,7 @@ public class StreamRecords {
 		}
 
 		@Override
-		public <K1, V1> MapBackedRecord<K1, V1> map(Function<Entry<K, V>, Entry<K1, V1>> mapFunction) {
+		public <K1, V1> MapBackedRecord<S, K1, V1> mapEntries(Function<Entry<K, V>, Entry<K1, V1>> mapFunction) {
 
 			Map<K1, V1> mapped = new LinkedHashMap<>(kvMap.size(), 1);
 			iterator().forEachRemaining(it -> {
@@ -66,7 +112,12 @@ public class StreamRecords {
 				mapped.put(mappedPair.getKey(), mappedPair.getValue());
 			});
 
-			return new MapBackedRecord<>(entryId, mapped);
+			return new MapBackedRecord<>(stream, entryId, mapped);
+		}
+
+		@Override
+		public <S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction) {
+			return mapFunction.apply(this);
 		}
 
 		@Override
@@ -80,8 +131,13 @@ public class StreamRecords {
 		}
 
 		@Override
-		public MapRecord<K, V> withId(EntryId id) {
-			return new MapBackedRecord<>(id, this.kvMap);
+		public MapRecord<S, K, V> withId(EntryId id) {
+			return new MapBackedRecord<>(stream, id, this.kvMap);
+		}
+
+		@Override
+		public <S1> MapRecord<S1, K, V> withStreamKey(S1 key) {
+			return new MapBackedRecord<>(key, entryId, this.kvMap);
 		}
 
 		@Override
@@ -90,15 +146,23 @@ public class StreamRecords {
 		}
 	}
 
-	static class ObjectBackedRecord<V> implements ObjectRecord<V> {
+	static class ObjectBackedRecord<S, V> implements ObjectRecord<S, V> {
 
+		private @Nullable S stream;
 		private EntryId entryId;
 		private final V value;
 
-		public ObjectBackedRecord(EntryId entryId, V value) {
+		public ObjectBackedRecord(@Nullable S stream, EntryId entryId, V value) {
 
+			this.stream = stream;
 			this.entryId = entryId;
 			this.value = value;
+		}
+
+		@Nullable
+		@Override
+		public S getStream() {
+			return null;
 		}
 
 		@Nullable
@@ -113,8 +177,13 @@ public class StreamRecords {
 		}
 
 		@Override
-		public ObjectRecord<V> withId(EntryId id) {
-			return new ObjectBackedRecord<>(id, value);
+		public ObjectRecord<S, V> withId(EntryId id) {
+			return new ObjectBackedRecord<>(stream, id, value);
+		}
+
+		@Override
+		public <S1> ObjectRecord<S1, V> withStreamKey(S1 key) {
+			return new ObjectBackedRecord<>(key, entryId, value);
 		}
 
 		@Override

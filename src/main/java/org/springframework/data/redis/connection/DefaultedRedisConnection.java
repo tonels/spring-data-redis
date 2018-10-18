@@ -433,29 +433,22 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default Long xAck(byte[] key, String group, String... messageIds) {
+	default Long xAck(byte[] key, String group, EntryId... messageIds) {
 		return streamCommands().xAck(key, group, messageIds);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default String xAdd(byte[] key, Map<byte[], byte[]> body) {
-		return streamCommands().xAdd(key, body);
+	default EntryId xAdd(MapRecord<byte[], byte[], byte[]> record) {
+		return streamCommands().xAdd(record);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record) {
-		return streamCommands().xAdd(key, record);
-	}
-
-	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
-	@Override
-	@Deprecated
-	default Long xDel(byte[] key, String... messageIds) {
-		return streamCommands().xDel(key, messageIds);
+	default Long xDel(byte[] key, EntryId... entryIds) {
+		return streamCommands().xDel(key, entryIds);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
@@ -496,7 +489,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<MapRecord<byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
+	default List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
 			Limit limit) {
 		return streamCommands().xRange(key, range, limit);
 	}
@@ -511,7 +504,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
+	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
 		return streamCommands().xRead(readOptions, streams);
 	}
 

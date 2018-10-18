@@ -76,11 +76,11 @@ public class ApiSpike {
 				RedisSerializer.string(), RedisSerializer.java(), null);
 
 		EntryId id = ops.xAdd("foo", Record.of(Collections.singletonMap("field", "value")));
-		List<MapRecord<String, Object>> range = ops.xRange("foo", Range.unbounded());
+		List<MapRecord<String, String, Object>> range = ops.xRange("foo", Range.unbounded());
 
 		range.forEach(it -> System.out.println(it.getId() + ": " + it.getValue()));
 
-		List<ObjectRecord<String>> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
+		List<ObjectRecord<String, String>> stringRange = ops.xRange("foo", Range.unbounded(), String.class);
 		stringRange.forEach(System.out::println);
 	}
 
@@ -97,7 +97,7 @@ public class ApiSpike {
 				RedisSerializer.string(), RedisSerializer.java(), new Jackson2HashMapper(false));
 
 		EntryId id = ops.xAdd("key", o);
-		List<ObjectRecord<SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
+		List<ObjectRecord<String, SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
 
 		list.forEach(System.out::println);
 	}
@@ -116,7 +116,7 @@ public class ApiSpike {
 
 		EntryId id = ops.xAdd("key", o);
 
-		List<MapRecord<String, Object>> list = ops.xRange("key", Range.unbounded());
+		List<MapRecord<String, String, Object>> list = ops.xRange("key", Range.unbounded());
 
 		list.forEach(System.out::println);
 	}
@@ -139,9 +139,9 @@ public class ApiSpike {
 
 	interface RedisStreamCommands {
 
-		EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> entry);
+		EntryId xAdd(byte[] key, MapRecord<byte[], byte[], byte[]> entry);
 
-		List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range);
+		List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range);
 
 	}
 
@@ -154,13 +154,13 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> entry) {
+		public EntryId xAdd(byte[] key, MapRecord<byte[],byte[], byte[]> entry) {
 			return org.springframework.data.redis.connection.RedisStreamCommands.EntryId
 					.of(connection.getConnection().xadd(key, entry.getValue()));
 		}
 
 		@Override
-		public List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
+		public List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range) {
 
 			List<StreamMessage<byte[], byte[]>> raw = connection.getConnection().xrange(key,
 					io.lettuce.core.Range.unbounded(), Limit.unlimited());
@@ -177,19 +177,19 @@ public class ApiSpike {
 			return xAdd(key, Record.of(value));
 		}
 
-		default EntryId xAdd(K key, Record<?> value) {
+		default EntryId xAdd(K key, Record<K,?> value) {
 			return xAdd(key, objectToEntry(value));
 		}
 
-		EntryId xAdd(K key, MapRecord<? extends HK, ? extends HV> entry);
+		EntryId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry);
 
-		List<MapRecord<HK, HV>> xRange(K key, Range<String> range);
+		List<MapRecord<K, HK, HV>> xRange(K key, Range<String> range);
 
-		default <V> List<ObjectRecord<V>> xRange(K key, Range<String> range, Class<V> targetType) {
+		default <V> List<ObjectRecord<K, V>> xRange(K key, Range<String> range, Class<V> targetType) {
 			return xRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
 		}
 
-		default <V> MapRecord<HK, HV> objectToEntry(V value) {
+		default <V> MapRecord<K, HK, HV> objectToEntry(V value) {
 
 			if (value instanceof ObjectRecord) {
 
@@ -201,7 +201,7 @@ public class ApiSpike {
 			return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value));
 		}
 
-		default <V> ObjectRecord<V> entryToObject(MapRecord<HK, HV> entry, Class<V> targetType) {
+		default <V> ObjectRecord<K, V> entryToObject(MapRecord<K, HK, HV> entry, Class<V> targetType) {
 			return entry.toObjectRecord(getHashMapper(targetType));
 		}
 
@@ -247,14 +247,14 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(K key, MapRecord<? extends HK, ? extends HV> entry) {
-			return commands.xAdd(serializeKeyIfRequired(key), entry.map(this::mapToBinary));
+		public EntryId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry) {
+			return commands.xAdd(serializeKeyIfRequired(key), entry.mapEntries(this::mapToBinary).withStreamKey(serializeKeyIfRequired(key)));
 		}
 
 		@Override
-		public List<MapRecord<HK, HV>> xRange(K key, Range<String> range) {
+		public List<MapRecord<K, HK, HV>> xRange(K key, Range<String> range) {
 
-			return commands.xRange(serializeKeyIfRequired(key), range).stream().map(it -> it.map(this::mapToObject))
+			return commands.xRange(serializeKeyIfRequired(key), range).stream().map(it ->it.mapEntries(this::mapToObject).withStreamKey(deserializeKey(it.getStream(), null)))
 					.collect(Collectors.toList());
 		}
 

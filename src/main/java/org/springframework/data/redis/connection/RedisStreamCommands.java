@@ -21,6 +21,7 @@ import lombok.ToString;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,6 +45,17 @@ import org.springframework.util.StringUtils;
  */
 public interface RedisStreamCommands {
 
+	// TODO: remove when done
+	static List<StreamMessage<byte[], byte[]>> mapToStreamMessage(List<MapRecord<byte[], byte[], byte[]>> rawResult) {
+		List<StreamMessage<byte[], byte[]>> messages = new ArrayList<>();
+		for (MapRecord<byte[], byte[], byte[]> record : rawResult) {
+
+			messages.add(new StreamMessage(record.getStream(), record.getId().getValue(), record.getValue()));
+		}
+
+		return messages;
+	}
+
 	/**
 	 * Acknowledge one or more messages as processed.
 	 *
@@ -54,7 +66,12 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
 	@Nullable
-	Long xAck(byte[] key, String group, String... messageIds);
+	default Long xAck(byte[] key, String group, String... messageIds) {
+		return xAck(key, group, Arrays.stream(messageIds).map(EntryId::of).toArray(EntryId[]::new));
+	}
+
+	@Nullable
+	Long xAck(byte[] key, String group, EntryId... entryIds);
 
 	/**
 	 * Append a message to the stream {@code key}.
@@ -66,17 +83,16 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default String xAdd(byte[] key, Map<byte[], byte[]> body) {
-		return xAdd(key, Record.of(body)).getValue();
+		return xAdd(StreamRecords.newRecord().in(key).ofMap(body)).getValue();
 	}
 
 	/**
 	 * Append the given {@link MapRecord record} to the stream at {@literal key}.
 	 *
-	 * @param key the stream key.
 	 * @param record the {@link MapRecord record} to append.
 	 * @return the {@link EntryId entry-id} after save.
 	 */
-	EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record);
+	EntryId xAdd(MapRecord<byte[], byte[], byte[]> record);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -88,7 +104,11 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	@Nullable
-	Long xDel(byte[] key, String... messageIds);
+	default Long xDel(byte[] key, String... messageIds) {
+		return xDel(key, Arrays.stream(messageIds).map(EntryId::of).toArray(EntryId[]::new));
+	}
+
+	Long xDel(byte[] key, EntryId... entryIds);
 
 	/**
 	 * Create a consumer group.
@@ -141,20 +161,7 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default List<StreamMessage<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
-
-		List<MapRecord<byte[], byte[]>> rawResult = xRange(key, range, Limit.unlimited());
-
-		/*
-		 * why not Java? why?
-		 * return rawResult.stream().map(it -> new StreamMessage(key, it.getId().getValue(), it.getValue())).collect(Collectors.toList());
-		 */
-		List<StreamMessage<byte[], byte[]>> messages = new ArrayList<>();
-		for (MapRecord<byte[], byte[]> record : rawResult) {
-
-			messages.add(new StreamMessage(key, record.getId().getValue(), record.getValue()));
-		}
-
-		return messages;
+		return mapToStreamMessage(xRange(key, range, Limit.unlimited()));
 	}
 
 	/**
@@ -167,7 +174,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<MapRecord<byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit);
+	List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
@@ -190,7 +197,9 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default List<StreamMessage<byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
-		return xRead(StreamReadOptions.empty(), streams);
+
+		List<MapRecord<byte[], byte[], byte[]>> foo = xRead(StreamReadOptions.empty(), streams);
+		return mapToStreamMessage(foo);
 	}
 
 	/**
@@ -215,7 +224,9 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
+	// List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
+
+	List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -659,7 +670,15 @@ public interface RedisStreamCommands {
 	 * @author Christoph Strobl
 	 * @see <a href="https://redis.io/topics/streams-intro#streams-basics">Redis Documentation - Stream Basics</a>
 	 */
-	interface Record<V> {
+	interface Record<S, V> {
+
+		/**
+		 * The id of the streak (aka key).
+		 *
+		 * @return can be {@literal null}.
+		 */
+		@Nullable
+		S getStream();
 
 		/**
 		 * The id of the entry inside the stream.
@@ -681,10 +700,10 @@ public interface RedisStreamCommands {
 		 * @param <V> the value type of the given {@link Map}.
 		 * @return new instance of {@link MapRecord}.
 		 */
-		static <K, V> MapRecord<K, V> of(Map<K, V> map) {
+		static <S, K, V> MapRecord<S, K, V> of(Map<K, V> map) {
 
 			Assert.notNull(map, "Map must not be null!");
-			return StreamRecords.mapBacked(map);
+			return StreamRecords.<S, K, V> mapBacked(map);
 		}
 
 		/**
@@ -695,7 +714,7 @@ public interface RedisStreamCommands {
 		 * @param <V> the type of the backing value.
 		 * @return new instance of {@link MapRecord}.
 		 */
-		static <V> ObjectRecord<V> of(V value) {
+		static <S, V> ObjectRecord<S, V> of(V value) {
 
 			Assert.notNull(value, "Value must not be null!");
 			return StreamRecords.objectBacked(value);
@@ -707,7 +726,9 @@ public interface RedisStreamCommands {
 		 * @param id must not be {@literal null}.
 		 * @return new instance of {@link Record}.
 		 */
-		Record<V> withId(EntryId id);
+		Record<S, V> withId(EntryId id);
+
+		<S1> Record<S1, V> withStreamKey(S1 key);
 	}
 
 	/**
@@ -716,14 +737,16 @@ public interface RedisStreamCommands {
 	 *
 	 * @param <V> the type of the backing Object.
 	 */
-	interface ObjectRecord<V> extends Record<V> {
+	interface ObjectRecord<S, V> extends Record<S, V> {
 
 		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
 		 */
 		@Override
-		ObjectRecord<V> withId(EntryId id);
+		ObjectRecord<S, V> withId(EntryId id);
+
+		<S1> ObjectRecord<S1, V> withStreamKey(S1 key);
 
 		/**
 		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
@@ -734,8 +757,8 @@ public interface RedisStreamCommands {
 		 * @param <HV> the value type of the resulting {@link MapRecord}.
 		 * @return new instance of {@link MapRecord}.
 		 */
-		default <HK, HV> MapRecord<HK, HV> toMapRecord(HashMapper<? super V, HK, HV> mapper) {
-			return Record.of(mapper.toHash(getValue())).withId(getId());
+		default <HK, HV> MapRecord<S, HK, HV> toMapRecord(HashMapper<? super V, HK, HV> mapper) {
+			return Record.<S, HK, HV> of(mapper.toHash(getValue())).withId(getId());
 		}
 	}
 
@@ -745,14 +768,16 @@ public interface RedisStreamCommands {
 	 * @param <K> the field type of the backing collection.
 	 * @param <V> the value type of the backing collection.
 	 */
-	interface MapRecord<K, V> extends Record<Map<K, V>>, Iterable<Map.Entry<K, V>> {
+	interface MapRecord<S, K, V> extends Record<S, Map<K, V>>, Iterable<Map.Entry<K, V>> {
 
 		/*
 		 * (non-Javadoc)
 		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
 		 */
 		@Override
-		MapRecord<K, V> withId(EntryId id);
+		MapRecord<S, K, V> withId(EntryId id);
+
+		<S1> MapRecord<S1, K, V> withStreamKey(S1 key);
 
 		/**
 		 * Apply the given {@link Function mapFunction} to each and every entry in the backing collection to create a new
@@ -763,7 +788,9 @@ public interface RedisStreamCommands {
 		 * @param <HV> the value type of the new backing collection.
 		 * @return new instance of {@link MapRecord}.
 		 */
-		<HK, HV> MapRecord<HK, HV> map(Function<Entry<K, V>, Entry<HK, HV>> mapFunction);
+		<HK, HV> MapRecord<S, HK, HV> mapEntries(Function<Entry<K, V>, Entry<HK, HV>> mapFunction);
+
+		<S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction);
 
 		/**
 		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
@@ -773,8 +800,8 @@ public interface RedisStreamCommands {
 		 * @param <OV> type of the value backing the {@link ObjectRecord}.
 		 * @return new instance of {@link ObjectRecord}.
 		 */
-		default <OV> ObjectRecord<OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
-			return Record.of((OV) (mapper).fromHash((Map) getValue())).withId(getId());
+		default <OV> ObjectRecord<S, OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
+			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId());
 		}
 	}
 }

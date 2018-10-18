@@ -3732,8 +3732,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAck(byte[], java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Long xAck(byte[] key, String group, String... messageIds) {
-		return delegate.xAck(key, group, messageIds);
+	public Long xAck(byte[] key, String group, EntryId... entryIds) {
+		return delegate.xAck(key, group, entryIds);
 	}
 
 	/*
@@ -3741,17 +3741,17 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], MapRecord)
 	 */
 	@Override
-	public EntryId xAdd(byte[] key, MapRecord<byte[], byte[]> record) {
-		return delegate.xAdd(key, record);
+	public EntryId xAdd(MapRecord<byte[], byte[], byte[]> record) {
+		return delegate.xAdd(record);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], java.lang.String[])
+	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], EntryId)
 	 */
 	@Override
-	public Long xDel(byte[] key, String... messageIds) {
-		return delegate.xDel(key, messageIds);
+	public Long xDel(byte[] key, EntryId... entryIds) {
+		return delegate.xDel(key, entryIds);
 	}
 
 	/*
@@ -3795,7 +3795,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<MapRecord<byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
+	public List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range,
 			Limit limit) {
 		return delegate.xRange(key, range, limit);
 	}
@@ -3805,7 +3805,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRead(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
+	public List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
 		return delegate.xRead(readOptions, streams);
 	}
 
