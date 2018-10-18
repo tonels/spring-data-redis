@@ -290,7 +290,7 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key, Range<String> range) {
-		return xRevRange(key, range, Limit.unlimited());
+		return mapToStreamMessage(xRevRange(key, range, Limit.unlimited()));
 	}
 
 	/**
@@ -303,7 +303,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit);
+	List<MapRecord<byte[], byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

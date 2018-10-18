@@ -534,7 +534,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key, org.springframework.data.domain.Range<String> range,
+	default List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key, org.springframework.data.domain.Range<String> range,
 			Limit limit) {
 		return streamCommands().xRevRange(key, range, limit);
 	}

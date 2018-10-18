@@ -376,7 +376,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRevRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit) {
+	public List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -387,15 +387,15 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xrevrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xrevrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 				return null;
 			}
-			return StreamConverters.toStreamMessages(getConnection().xrevrange(key, lettuceRange, lettuceLimit));
+			return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getConnection().xrevrange(key, lettuceRange, lettuceLimit));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
