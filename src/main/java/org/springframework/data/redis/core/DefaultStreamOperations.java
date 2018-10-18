@@ -71,7 +71,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			rawBody.put(rawKey(entry.getKey()), rawValue(entry.getValue()));
 		}
 
-		return execute(connection -> connection.xAdd(rawKey, rawBody), true);
+		return execute(connection -> connection.xAdd(rawKey, rawBody).getValue(), true);
 	}
 
 	/*

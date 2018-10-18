@@ -82,8 +82,8 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	default String xAdd(byte[] key, Map<byte[], byte[]> body) {
-		return xAdd(StreamRecords.newRecord().in(key).ofMap(body)).getValue();
+	default EntryId xAdd(byte[] key, Map<byte[], byte[]> body) {
+		return xAdd(StreamRecords.newRecord().in(key).ofMap(body));
 	}
 
 	/**
