@@ -3814,7 +3814,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xReadGroup(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	public List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]>... streams) {
 		return delegate.xReadGroup(consumer, readOptions, streams);
 	}

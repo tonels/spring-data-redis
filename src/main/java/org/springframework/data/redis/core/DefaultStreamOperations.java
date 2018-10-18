@@ -174,7 +174,9 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Nullable
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-				return connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
+
+				List<MapRecord<byte[], byte[], byte[]>> x = connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
+				return RedisStreamCommands.mapToStreamMessage(x);
 			}
 		}, true);
 	}

@@ -322,7 +322,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xReadGroup(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	public List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]>... streams) {
 
 		Assert.notNull(consumer, "Consumer must not be null!");
@@ -339,17 +339,16 @@ class LettuceStreamCommands implements RedisStreamCommands {
 				if (isPipelined()) {
 					pipeline(connection.newLettuceResult(
 							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-							StreamConverters.streamMessageListConverter()));
+							StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 					return null;
 				}
 				if (isQueueing()) {
 					transaction(connection.newLettuceResult(
 							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-							StreamConverters.streamMessageListConverter()));
+							StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 					return null;
 				}
-				return StreamConverters
-						.toStreamMessages(getDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
+				return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
 			} catch (Exception ex) {
 				throw convertLettuceAccessException(ex);
 			}
@@ -358,15 +357,15 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-						StreamConverters.streamMessageListConverter()));
+						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
 				return null;
 			}
-			return StreamConverters.toStreamMessages(getConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
+			return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}

@@ -224,8 +224,6 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	// List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
-
 	List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
@@ -251,7 +249,7 @@ public interface RedisStreamCommands {
 	 */
 	@Nullable
 	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
-		return xReadGroup(consumer, StreamReadOptions.empty(), streams);
+		return mapToStreamMessage(xReadGroup(consumer, StreamReadOptions.empty(), streams));
 	}
 
 	/**
@@ -279,7 +277,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]>... streams);
 
 	/**

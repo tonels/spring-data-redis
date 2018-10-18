@@ -518,7 +518,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]>... streams) {
 		return streamCommands().xReadGroup(consumer, readOptions, streams);
 	}
