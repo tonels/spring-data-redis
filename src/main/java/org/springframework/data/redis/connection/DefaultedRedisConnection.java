@@ -482,7 +482,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range) {
+	default List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, org.springframework.data.domain.Range<String> range) {
 		return streamCommands().xRange(key, range);
 	}
 
@@ -497,7 +497,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
+	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
 		return streamCommands().xRead(streams);
 	}
 
@@ -511,7 +511,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
+	default List<MapRecord<byte[],byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
 		return streamCommands().xReadGroup(consumer, streams);
 	}
 
@@ -526,7 +526,7 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key,
+	default List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key,
 			org.springframework.data.domain.Range<String> range) {
 		return streamCommands().xRevRange(key, range);
 	}

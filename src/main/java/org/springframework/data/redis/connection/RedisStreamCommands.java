@@ -160,8 +160,8 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xRange(byte[] key, Range<String> range) {
-		return mapToStreamMessage(xRange(key, range, Limit.unlimited()));
+	default List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range) {
+		return xRange(key, range, Limit.unlimited());
 	}
 
 	/**
@@ -184,7 +184,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xRead(StreamOffset<byte[]> stream) {
+	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamOffset<byte[]> stream) {
 		return xRead(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -196,10 +196,8 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
-
-		List<MapRecord<byte[], byte[], byte[]>> foo = xRead(StreamReadOptions.empty(), streams);
-		return mapToStreamMessage(foo);
+	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
+		return xRead(StreamReadOptions.empty(), streams);
 	}
 
 	/**
@@ -211,7 +209,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]> stream) {
+	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]> stream) {
 		return xRead(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -235,7 +233,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]> stream) {
+	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]> stream) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -248,8 +246,8 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
-		return mapToStreamMessage(xReadGroup(consumer, StreamReadOptions.empty(), streams));
+	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
+		return xReadGroup(consumer, StreamReadOptions.empty(), streams);
 	}
 
 	/**
@@ -262,7 +260,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]> stream) {
 		return xReadGroup(consumer, readOptions, new StreamOffset[] { stream });
 	}
@@ -289,8 +287,8 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<byte[], byte[]>> xRevRange(byte[] key, Range<String> range) {
-		return mapToStreamMessage(xRevRange(key, range, Limit.unlimited()));
+	default List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key, Range<String> range) {
+		return xRevRange(key, range, Limit.unlimited());
 	}
 
 	/**
