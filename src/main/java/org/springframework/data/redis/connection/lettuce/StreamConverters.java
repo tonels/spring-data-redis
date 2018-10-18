@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.redis.connection.RedisStreamCommands;
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Record;
@@ -113,8 +114,15 @@ class StreamConverters {
 	}
 
 	public static <S, K, V> Converter<StreamMessage<K, V>, MapRecord<S, K, V>> recordConverter() {
-//		return (it) -> Record.<S,K,V>of(it.getBody()).withId(EntryId.of(it.getId())).withStreamKey((S)it.getStream());
 		return (it) -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofMap(it.getBody());
+	}
+
+	public static Converter<StreamMessage<byte[], byte[]>, ByteMapRecord> byteRecordConverter() {
+		return (it) -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofBytes(it.getBody());
+	}
+
+	public static Converter<List<StreamMessage<byte[], byte[]>>, List<ByteMapRecord>> byteRecordListConverter() {
+		return new ListConverter<>(byteRecordConverter());
 	}
 
 	/**

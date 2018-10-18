@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisStreamCommands;
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
@@ -157,7 +158,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
 
-				List<MapRecord<byte[], byte[], byte[]>> x = connection.xRead(readOptions, rawStreamOffsets(streams));
+				List<ByteMapRecord> x = connection.xRead(readOptions, rawStreamOffsets(streams));
 				return RedisStreamCommands.mapToStreamMessage(x);
 			}
 		}, true);
@@ -175,7 +176,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
 
-				List<MapRecord<byte[], byte[], byte[]>> x = connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
+				List<ByteMapRecord> x = connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
 				return RedisStreamCommands.mapToStreamMessage(x);
 			}
 		}, true);
@@ -192,7 +193,7 @@ class DefaultStreamOperations<K, V> extends AbstractOperations<K, V> implements 
 			@Nullable
 			@Override
 			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-				List<MapRecord<byte[], byte[], byte[]>> x = connection.xRevRange(rawKey(key), range, limit);
+				List<ByteMapRecord> x = connection.xRevRange(rawKey(key), range, limit);
 				return RedisStreamCommands.mapToStreamMessage(x);
 			}
 		}, true);

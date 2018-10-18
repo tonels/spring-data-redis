@@ -1,15 +1,16 @@
 package org.springframework.data.redis.connection;
 
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.StringMapRecord;
 import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
 
 /**
  * {@link StreamRecords} provides utilities to create specific
@@ -20,8 +21,8 @@ import org.springframework.lang.Nullable;
  */
 public class StreamRecords {
 
-	public static MapRecord<byte[], byte[], byte[]> rawBytes(Map<byte[], byte[]> raw) {
-		return new RawEntry(null, EntryId.autoGenerate(), raw);
+	public static ByteMapRecord rawBytes(Map<byte[], byte[]> raw) {
+		return new ByteMapBackedRecord(null, EntryId.autoGenerate(), raw);
 	}
 
 	public static <S, K, V> MapRecord<S, K, V> mapBacked(Map<K, V> map) {
@@ -36,11 +37,7 @@ public class StreamRecords {
 		return new RecordBuilder(null, EntryId.autoGenerate());
 	}
 
-	static class RawEntry extends MapBackedRecord<byte[], byte[], byte[]> {
-		public RawEntry(byte[] stream, EntryId entryId, Map<byte[], byte[]> map) {
-			super(stream, entryId, map);
-		}
-	}
+
 
 	public static class RecordBuilder<S> {
 
@@ -71,10 +68,19 @@ public class StreamRecords {
 			return new MapBackedRecord<>(stream, id, map);
 		}
 
+		public StringMapRecord ofStrings(Map<String, String> map) {
+			return new StringMapBackedRecord(ObjectUtils.nullSafeToString(stream), id, map);
+		}
+
 		public <V> ObjectRecord<S, V> ofObject(V value) {
 			return new ObjectBackedRecord<>(stream, id, value);
 		}
 
+		public ByteMapRecord ofBytes(Map<byte[],byte[]> value) {
+
+			// todo auto conversion of known values
+			return new ByteMapBackedRecord((byte[])stream, id, value);
+		}
 	}
 
 	static class MapBackedRecord<S, K, V> implements MapRecord<S, K, V> {
@@ -103,24 +109,6 @@ public class StreamRecords {
 		}
 
 		@Override
-		public <K1, V1> MapBackedRecord<S, K1, V1> mapEntries(Function<Entry<K, V>, Entry<K1, V1>> mapFunction) {
-
-			Map<K1, V1> mapped = new LinkedHashMap<>(kvMap.size(), 1);
-			iterator().forEachRemaining(it -> {
-
-				Entry<K1, V1> mappedPair = mapFunction.apply(it);
-				mapped.put(mappedPair.getKey(), mappedPair.getValue());
-			});
-
-			return new MapBackedRecord<>(stream, entryId, mapped);
-		}
-
-		@Override
-		public <S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction) {
-			return mapFunction.apply(this);
-		}
-
-		@Override
 		public Iterator<Entry<K, V>> iterator() {
 			return kvMap.entrySet().iterator();
 		}
@@ -144,6 +132,39 @@ public class StreamRecords {
 		public String toString() {
 			return "MapBackedRecord{" + "entryId=" + entryId + ", kvMap=" + kvMap + '}';
 		}
+	}
+
+	static class ByteMapBackedRecord extends MapBackedRecord<byte[], byte[], byte[]> implements ByteMapRecord{
+
+		ByteMapBackedRecord(byte[] stream, EntryId entryId, Map<byte[], byte[]> map) {
+			super(stream, entryId, map);
+		}
+
+		@Override
+		public ByteMapBackedRecord withStreamKey(byte[] key) {
+			return new ByteMapBackedRecord(key, getId(), getValue());
+		}
+
+		public ByteMapBackedRecord withId(EntryId id) {
+			return new ByteMapBackedRecord(getStream(), id, getValue());
+		}
+	}
+
+	static class StringMapBackedRecord extends MapBackedRecord<String, String, String> implements StringMapRecord {
+
+		StringMapBackedRecord(String stream, EntryId entryId, Map<String, String> stringStringMap) {
+			super(stream, entryId, stringStringMap);
+		}
+
+		@Override
+		public StringMapRecord withStreamKey(String key) {
+			return new StringMapBackedRecord(key, getId(), getValue());
+		}
+
+		public StringMapBackedRecord withId(EntryId id) {
+			return new StringMapBackedRecord(getStream(), id, getValue());
+		}
+
 	}
 
 	static class ObjectBackedRecord<S, V> implements ObjectRecord<S, V> {

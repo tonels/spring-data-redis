@@ -22,6 +22,8 @@ import lombok.ToString;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,7 +31,9 @@ import java.util.function.Function;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.connection.StreamRecords.MapBackedRecord;
 import org.springframework.data.redis.hash.HashMapper;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.NumberUtils;
@@ -46,7 +50,8 @@ import org.springframework.util.StringUtils;
 public interface RedisStreamCommands {
 
 	// TODO: remove when done
-	static List<StreamMessage<byte[], byte[]>> mapToStreamMessage(List<MapRecord<byte[], byte[], byte[]>> rawResult) {
+	static List<StreamMessage<byte[], byte[]>> mapToStreamMessage(
+			List<? extends MapRecord<byte[], byte[], byte[]>> rawResult) {
 		List<StreamMessage<byte[], byte[]>> messages = new ArrayList<>();
 		for (MapRecord<byte[], byte[], byte[]> record : rawResult) {
 
@@ -160,7 +165,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range) {
+	default List<ByteMapRecord> xRange(byte[] key, Range<String> range) {
 		return xRange(key, range, Limit.unlimited());
 	}
 
@@ -174,7 +179,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit);
+	List<ByteMapRecord> xRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
@@ -184,7 +189,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamOffset<byte[]> stream) {
+	default List<ByteMapRecord> xRead(StreamOffset<byte[]> stream) {
 		return xRead(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -196,7 +201,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamOffset<byte[]>... streams) {
+	default List<ByteMapRecord> xRead(StreamOffset<byte[]>... streams) {
 		return xRead(StreamReadOptions.empty(), streams);
 	}
 
@@ -209,7 +214,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]> stream) {
+	default List<ByteMapRecord> xRead(StreamReadOptions readOptions, StreamOffset<byte[]> stream) {
 		return xRead(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -222,7 +227,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<MapRecord<byte[], byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
+	List<ByteMapRecord> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -233,7 +238,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]> stream) {
+	default List<ByteMapRecord> xReadGroup(Consumer consumer, StreamOffset<byte[]> stream) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -246,7 +251,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
+	default List<ByteMapRecord> xReadGroup(Consumer consumer, StreamOffset<byte[]>... streams) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -260,7 +265,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	default List<ByteMapRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]> stream) {
 		return xReadGroup(consumer, readOptions, new StreamOffset[] { stream });
 	}
@@ -275,8 +280,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
-			StreamOffset<byte[]>... streams);
+	List<ByteMapRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
@@ -287,7 +291,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key, Range<String> range) {
+	default List<ByteMapRecord> xRevRange(byte[] key, Range<String> range) {
 		return xRevRange(key, range, Limit.unlimited());
 	}
 
@@ -301,7 +305,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<MapRecord<byte[], byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit);
+	List<ByteMapRecord> xRevRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.
@@ -784,9 +788,35 @@ public interface RedisStreamCommands {
 		 * @param <HV> the value type of the new backing collection.
 		 * @return new instance of {@link MapRecord}.
 		 */
-		<HK, HV> MapRecord<S, HK, HV> mapEntries(Function<Entry<K, V>, Entry<HK, HV>> mapFunction);
+		default <HK, HV> MapRecord<S, HK, HV> mapEntries(Function<Entry<K, V>, Entry<HK, HV>> mapFunction) {
 
-		<S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction);
+			Map<HK, HV> mapped = new LinkedHashMap<>();
+			iterator().forEachRemaining(it -> {
+
+				Entry<HK, HV> mappedPair = mapFunction.apply(it);
+				mapped.put(mappedPair.getKey(), mappedPair.getValue());
+			});
+
+			return new MapBackedRecord<>(getStream(), getId(), mapped);
+		}
+
+		default <S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction) {
+			return mapFunction.apply(this);
+		}
+
+		default ByteMapRecord serialize(RedisSerializer serializer) {
+			return serialize(serializer, serializer, serializer);
+		}
+
+		default ByteMapRecord serialize(RedisSerializer<? super S> streamSerializer,
+				RedisSerializer<? super K> fieldSerializer, RedisSerializer<? super V> valueSerializer) {
+
+			MapRecord<S, byte[], byte[]> x = mapEntries(it -> Collections
+					.singletonMap(fieldSerializer.serialize(it.getKey()), valueSerializer.serialize(it.getValue())).entrySet()
+					.iterator().next());
+
+			return StreamRecords.newRecord().in(streamSerializer.serialize(getStream())).ofBytes(x.getValue());
+		}
 
 		/**
 		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
@@ -798,6 +828,45 @@ public interface RedisStreamCommands {
 		 */
 		default <OV> ObjectRecord<S, OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
 			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId());
+		}
+	}
+
+	interface ByteMapRecord extends MapRecord<byte[], byte[], byte[]> {
+
+		default <T> MapRecord<T, T, T> deserialize(RedisSerializer<T> serializer) {
+
+			return mapEntries(
+					it -> Collections.singletonMap(serializer.deserialize(it.getKey()), serializer.deserialize(it.getValue()))
+							.entrySet().iterator().next()).withStreamKey(serializer.deserialize(getStream()));
+		}
+
+		default <K, HK, HV> MapRecord<K, HK, HV> deserialize(RedisSerializer<? extends K> streamSerializer,
+				RedisSerializer<? extends HK> fieldSerializer, RedisSerializer<? extends HV> valueSerializer) {
+
+			return mapEntries(it -> Collections
+					.<HK, HV> singletonMap(fieldSerializer.deserialize(it.getKey()), valueSerializer.deserialize(it.getValue()))
+					.entrySet().iterator().next()).withStreamKey(streamSerializer.deserialize(getStream()));
+		}
+
+		@Override
+		ByteMapRecord withId(EntryId id);
+
+		ByteMapRecord withStreamKey(byte[] key);
+
+		static ByteMapRecord of(MapRecord<byte[], byte[], byte[]> source) {
+			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBytes(source.getValue());
+		}
+	}
+
+	interface StringMapRecord extends MapRecord<String, String, String> {
+
+		@Override
+		StringMapRecord withId(EntryId id);
+
+		StringMapRecord withStreamKey(String key);
+
+		static StringMapRecord of(MapRecord<String, String, String> source) {
+			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofStrings(source.getValue());
 		}
 	}
 }

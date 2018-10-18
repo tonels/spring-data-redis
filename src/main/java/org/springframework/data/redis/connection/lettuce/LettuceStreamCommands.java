@@ -79,7 +79,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], MapRecord)
 	 */
 	@Override
-	public EntryId xAdd(MapRecord<byte[],byte[], byte[]> record) {
+	public EntryId xAdd(MapRecord<byte[], byte[], byte[]> record) {
 
 		Assert.notNull(record.getStream(), "Stream must not be null!");
 		Assert.notNull(record, "Record must not be null!");
@@ -93,7 +93,8 @@ class LettuceStreamCommands implements RedisStreamCommands {
 				return null;
 			}
 			if (isQueueing()) {
-				transaction(connection.newLettuceResult(getAsyncConnection().xadd(record.getStream(), args, record.getValue())));
+				transaction(
+						connection.newLettuceResult(getAsyncConnection().xadd(record.getStream(), args, record.getValue())));
 				return null;
 			}
 			return EntryId.of(getConnection().xadd(record.getStream(), args, record.getValue()));
@@ -240,7 +241,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<MapRecord<byte[],byte[], byte[]>> xRange(byte[] key, Range<String> range, Limit limit) {
+	public List<ByteMapRecord> xRange(byte[] key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -251,16 +252,16 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
 
-			return StreamConverters.<byte[], byte[], byte[]> recordListConverter()
+			return StreamConverters.byteRecordListConverter()
 					.convert(getConnection().xrange(key, lettuceRange, lettuceLimit));
 
 		} catch (Exception ex) {
@@ -273,7 +274,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRead(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<MapRecord<byte[],byte[], byte[]>> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
+	public List<ByteMapRecord> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "StreamOffsets must not be null!");
@@ -286,15 +287,15 @@ class LettuceStreamCommands implements RedisStreamCommands {
 			try {
 				if (isPipelined()) {
 					pipeline(connection.newLettuceResult(getAsyncDedicatedConnection().xread(args, streamOffsets),
-							StreamConverters.recordListConverter()));
+							StreamConverters.byteRecordListConverter()));
 					return null;
 				}
 				if (isQueueing()) {
 					transaction(connection.newLettuceResult(getAsyncDedicatedConnection().xread(args, streamOffsets),
-							StreamConverters.recordListConverter()));
+							StreamConverters.byteRecordListConverter()));
 					return null;
 				}
-				return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getDedicatedConnection().xread(args, streamOffsets));
+				return StreamConverters.byteRecordListConverter().convert(getDedicatedConnection().xread(args, streamOffsets));
 			} catch (Exception ex) {
 				throw convertLettuceAccessException(ex);
 			}
@@ -303,15 +304,15 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xread(args, streamOffsets),
-						StreamConverters.recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xread(args, streamOffsets),
-						StreamConverters.recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
-			return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getConnection().xread(args, streamOffsets));
+			return StreamConverters.byteRecordListConverter().convert(getConnection().xread(args, streamOffsets));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
@@ -322,7 +323,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xReadGroup(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<MapRecord<byte[], byte[], byte[]>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	public List<ByteMapRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<byte[]>... streams) {
 
 		Assert.notNull(consumer, "Consumer must not be null!");
@@ -339,16 +340,17 @@ class LettuceStreamCommands implements RedisStreamCommands {
 				if (isPipelined()) {
 					pipeline(connection.newLettuceResult(
 							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-							StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+							StreamConverters.byteRecordListConverter()));
 					return null;
 				}
 				if (isQueueing()) {
 					transaction(connection.newLettuceResult(
 							getAsyncDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-							StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+							StreamConverters.byteRecordListConverter()));
 					return null;
 				}
-				return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
+				return StreamConverters.byteRecordListConverter()
+						.convert(getDedicatedConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
 			} catch (Exception ex) {
 				throw convertLettuceAccessException(ex);
 			}
@@ -357,15 +359,16 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xreadgroup(lettuceConsumer, args, streamOffsets),
-						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
-			return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
+			return StreamConverters.byteRecordListConverter()
+					.convert(getConnection().xreadgroup(lettuceConsumer, args, streamOffsets));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
@@ -376,7 +379,7 @@ class LettuceStreamCommands implements RedisStreamCommands {
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xRevRange(byte[], org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<MapRecord<byte[],byte[], byte[]>> xRevRange(byte[] key, Range<String> range, Limit limit) {
+	public List<ByteMapRecord> xRevRange(byte[] key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -387,15 +390,16 @@ class LettuceStreamCommands implements RedisStreamCommands {
 		try {
 			if (isPipelined()) {
 				pipeline(connection.newLettuceResult(getAsyncConnection().xrevrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
 			if (isQueueing()) {
 				transaction(connection.newLettuceResult(getAsyncConnection().xrevrange(key, lettuceRange, lettuceLimit),
-						StreamConverters.<byte[],byte[], byte[]>recordListConverter()));
+						StreamConverters.byteRecordListConverter()));
 				return null;
 			}
-			return StreamConverters.<byte[],byte[], byte[]>recordListConverter().convert(getConnection().xrevrange(key, lettuceRange, lettuceLimit));
+			return StreamConverters.byteRecordListConverter()
+					.convert(getConnection().xrevrange(key, lettuceRange, lettuceLimit));
 		} catch (Exception ex) {
 			throw convertLettuceAccessException(ex);
 		}
