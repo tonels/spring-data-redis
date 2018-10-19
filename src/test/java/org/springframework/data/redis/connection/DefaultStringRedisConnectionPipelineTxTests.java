@@ -1805,22 +1805,44 @@ public class DefaultStringRedisConnectionPipelineTxTests extends DefaultStringRe
 	@Test // DATAREDIS-864
 	public void xRangeShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		doReturn(Arrays.asList(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))))
+						.when(nativeConnection).closePipeline();
 		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
 	@Test // DATAREDIS-864
 	public void xReadShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		doReturn(Arrays.asList(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))))
+						.when(nativeConnection).closePipeline();
 		super.xReadShouldDelegateAndConvertCorrectly();
 	}
 
 	@Test // DATAREDIS-864
 	public void xReadGroupShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		doReturn(Arrays.asList(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))))
+						.when(nativeConnection).closePipeline();
 		super.xReadGroupShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xRevRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))))
+						.when(nativeConnection).closePipeline();
+		super.xRevRangeShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xTrimShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(1L))).when(nativeConnection).closePipeline();
+		super.xTrimShouldDelegateAndConvertCorrectly();
 	}
 
 	@SuppressWarnings("unchecked")

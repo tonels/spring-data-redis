@@ -2149,6 +2149,27 @@ public class DefaultStringRedisConnectionTests {
 				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
 	}
 
+	@Test // DATAREDIS-864
+	public void xRevRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))
+				.when(nativeConnection).xRevRange(any(), any(), any());
+
+		actual.add(connection.xRevRange("stream-1", org.springframework.data.domain.Range.unbounded(), Limit.unlimited()));
+
+		Assertions.assertThat(getResults()).containsExactly(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
+	}
+
+	@Test // DATAREDIS-864
+	public void xTrimShouldDelegateAndConvertCorrectly() {
+
+		doReturn(1L).when(nativeConnection).xTrim(any(), anyLong());
+
+		actual.add(connection.xTrim("key", 2L));
+		Assertions.assertThat(getResults()).containsExactly(1L);
+	}
+
 	protected List<Object> getResults() {
 		return actual;
 	}

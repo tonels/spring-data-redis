@@ -1718,6 +1718,20 @@ public class DefaultStringRedisConnectionPipelineTests extends DefaultStringRedi
 		super.xReadGroupShouldDelegateAndConvertCorrectly();
 	}
 
+	@Test // DATAREDIS-864
+	public void xRevRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).closePipeline();
+		super.xRevRangeShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xTrimShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(1L)).when(nativeConnection).closePipeline();
+		super.xTrimShouldDelegateAndConvertCorrectly();
+	}
+
 	protected List<Object> getResults() {
 		return connection.closePipeline();
 	}

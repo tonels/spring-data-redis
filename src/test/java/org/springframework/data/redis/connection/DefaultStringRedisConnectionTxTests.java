@@ -1692,22 +1692,44 @@ public class DefaultStringRedisConnectionTxTests extends DefaultStringRedisConne
 	@Test // DATAREDIS-864
 	public void xRangeShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).exec();
+		doReturn(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))
+						.when(nativeConnection).exec();
 		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
 	@Test // DATAREDIS-864
 	public void xReadShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).exec();
+		doReturn(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))
+						.when(nativeConnection).exec();
 		super.xReadShouldDelegateAndConvertCorrectly();
 	}
 
 	@Test // DATAREDIS-864
 	public void xReadGroupShouldDelegateAndConvertCorrectly() {
 
-		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).exec();
+		doReturn(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))
+						.when(nativeConnection).exec();
 		super.xReadGroupShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xRevRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))
+						.when(nativeConnection).exec();
+		super.xRevRangeShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xTrimShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(1L)).when(nativeConnection).exec();
+		super.xTrimShouldDelegateAndConvertCorrectly();
 	}
 
 	protected List<Object> getResults() {
