@@ -2138,6 +2138,17 @@ public class DefaultStringRedisConnectionTests {
 				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
 	}
 
+	@Test // DATAREDIS-864
+	public void xReadGroupShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))
+				.when(nativeConnection).xReadGroup(any(), any(), any());
+		actual.add(connection.xReadGroupAsString(Consumer.from("groupe", "one"), StreamReadOptions.empty(), StreamOffset.create("stream-1", ReadOffset.latest())));
+
+		Assertions.assertThat(getResults()).containsExactly(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
+	}
+
 	protected List<Object> getResults() {
 		return actual;
 	}

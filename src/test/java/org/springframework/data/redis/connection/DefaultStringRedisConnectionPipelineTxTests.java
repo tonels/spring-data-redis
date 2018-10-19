@@ -1816,6 +1816,13 @@ public class DefaultStringRedisConnectionPipelineTxTests extends DefaultStringRe
 		super.xReadShouldDelegateAndConvertCorrectly();
 	}
 
+	@Test // DATAREDIS-864
+	public void xReadGroupShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		super.xReadGroupShouldDelegateAndConvertCorrectly();
+	}
+
 	@SuppressWarnings("unchecked")
 	protected List<Object> getResults() {
 		connection.exec();

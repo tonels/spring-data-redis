@@ -247,21 +247,6 @@ public interface RedisStreamCommands {
 	 *
 	 * @param consumer consumer/group.
 	 * @param readOptions read arguments.
-	 * @param stream the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
-	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
-	 */
-	@Nullable
-	default List<ByteMapRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
-			StreamOffset<byte[]> stream) {
-		return xReadGroup(consumer, readOptions, new StreamOffset[] { stream });
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
-	 *
-	 * @param consumer consumer/group.
-	 * @param readOptions read arguments.
 	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
