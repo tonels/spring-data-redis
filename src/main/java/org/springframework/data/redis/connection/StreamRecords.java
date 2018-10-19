@@ -25,6 +25,10 @@ public class StreamRecords {
 		return new ByteMapBackedRecord(null, EntryId.autoGenerate(), raw);
 	}
 
+	public static StringMapRecord string(Map<String, String> values) {
+		return new StringMapBackedRecord(null, EntryId.autoGenerate(), values);
+	}
+
 	public static <S, K, V> MapRecord<S, K, V> mapBacked(Map<K, V> map) {
 		return new MapBackedRecord<>(null, EntryId.autoGenerate(), map);
 	}
@@ -36,7 +40,6 @@ public class StreamRecords {
 	public static RecordBuilder newRecord() {
 		return new RecordBuilder(null, EntryId.autoGenerate());
 	}
-
 
 
 	public static class RecordBuilder<S> {

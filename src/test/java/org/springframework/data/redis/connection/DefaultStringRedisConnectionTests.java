@@ -30,6 +30,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -44,6 +45,9 @@ import org.springframework.data.redis.connection.RedisGeoCommands.GeoLocation;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoRadiusCommandArgs;
 import org.springframework.data.redis.connection.RedisListCommands.Position;
 import org.springframework.data.redis.connection.RedisServerCommands.ShutdownOption;
+import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStringCommands.BitOperation;
 import org.springframework.data.redis.connection.RedisZSetCommands.Aggregate;
 import org.springframework.data.redis.connection.RedisZSetCommands.Tuple;
@@ -2030,6 +2034,56 @@ public class DefaultStringRedisConnectionTests {
 		actual.add(connection.geoRadiusByMember(foo, bar, new Distance(38.115556, DistanceUnit.FEET), geoRadiusParam));
 		verifyResults(Arrays.asList(Converters.deserializingGeoResultsConverter(serializer).convert(geoResults)));
 	}
+
+	@Test // DATAREDIS-864
+	public void xAckShouldDelegateAndConvertCorrectly() {
+
+
+		doReturn(1L).when(nativeConnection).xAck(any(byte[].class), any(String.class), eq(EntryId.of("1-1")));
+
+		actual.add(connection.xAck("key", "group", EntryId.of("1-1")));
+		Assertions.assertThat(getResults()).containsExactly(1L);
+	}
+
+	@Test // DATAREDIS-864
+	public void xAddShouldAppendRecordCorrectly() {
+
+		doReturn(EntryId.of("1-1")).when(nativeConnection).xAdd(any());
+		actual.add(connection
+				.xAdd(StreamRecords.newRecord().in("stream-1").ofStrings(Collections.singletonMap("field", "value"))));
+
+		Assertions.assertThat(getResults()).containsExactly(EntryId.of("1-1"));
+	}
+
+	@Test // DATAREDIS-864
+	public void xDelShouldDelegateAndConvertCorrectly() {
+
+
+		doReturn(1L).when(nativeConnection).xDel(any(byte[].class), eq(EntryId.of("1-1")));
+
+		actual.add(connection.xDel("key", EntryId.of("1-1")));
+		Assertions.assertThat(getResults()).containsExactly(1L);
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupCreateShouldDelegateAndConvertCorrectly() {
+
+		doReturn("OK").when(nativeConnection).xGroupCreate(any(), any(), any());
+
+		actual.add(connection.xGroupCreate("key", ReadOffset.latest(), "consumer-group"));
+		Assertions.assertThat(getResults()).containsExactly("OK");
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupDelConsumerShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Boolean.TRUE).when(nativeConnection).xGroupDelConsumer(any(), any());
+
+		actual.add(connection.xGroupDelConsumer("key", Consumer.from("consumer-group","one")));
+		Assertions.assertThat(getResults()).containsExactly(Boolean.TRUE);
+	}
+
+
 
 	protected List<Object> getResults() {
 		return actual;

@@ -16,6 +16,7 @@
 package org.springframework.data.redis.connection;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -1959,18 +1960,31 @@ public interface StringRedisConnection extends RedisConnection {
 	// Methods dealing with Redis Streams
 	// -------------------------------------------------------------------------
 
+	static EntryId[] entryIds(String... entryIds) {
+
+		if(entryIds.length == 1) {
+			return new EntryId[]{EntryId.of(entryIds[0])};
+		}
+
+		return Arrays.stream(entryIds).map(EntryId::of).toArray(EntryId[]::new);
+	}
+
 	/**
 	 * Acknowledge one or more messages as processed.
 	 *
 	 * @param key the stream key.
 	 * @param group name of the consumer group.
-	 * @param messageIds message Id's to acknowledge.
+	 * @param entryIds message Id's to acknowledge.
 	 * @return length of acknowledged messages. {@literal null} when used in pipeline / transaction.
 	 * @since 2.2
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
 	@Nullable
-	Long xAck(String key, String group, String... messageIds);
+	default Long xAck(String key, String group, String... entryIds) {
+		return xAck(key, group, entryIds(entryIds));
+	}
+
+	Long xAck(String key, String group, EntryId... entryIds);
 
 	/**
 	 * Append a message to the stream {@code key}.
@@ -1993,13 +2007,17 @@ public interface StringRedisConnection extends RedisConnection {
 	 * number of IDs passed in case certain IDs do not exist.
 	 *
 	 * @param key the stream key.
-	 * @param messageIds stream message Id's.
+	 * @param entryIds stream message Id's.
 	 * @return number of removed entries. {@literal null} when used in pipeline / transaction.
 	 * @since 2.2
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	@Nullable
-	Long xDel(String key, String... messageIds);
+	default Long xDel(String key, String... entryIds) {
+		return xDel(key, entryIds(entryIds));
+	}
+
+	Long xDel(String key, EntryId... entryIds);
 
 	/**
 	 * Create a consumer group.
@@ -2137,7 +2155,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<String, String>> xReadGroupAsString(Consumer consumer, StreamOffset<String> stream) {
+	default List<StringMapRecord> xReadGroupAsString(Consumer consumer, StreamOffset<String> stream) {
 		return xReadGroupAsString(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -2151,7 +2169,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<String, String>> xReadGroupAsString(Consumer consumer, StreamOffset<String>... streams) {
+	default List<StringMapRecord> xReadGroupAsString(Consumer consumer, StreamOffset<String>... streams) {
 		return xReadGroupAsString(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -2166,7 +2184,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<String, String>> xReadGroupAsString(Consumer consumer, StreamReadOptions readOptions,
+	default List<StringMapRecord> xReadGroupAsString(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<String> stream) {
 		return xReadGroupAsString(consumer, readOptions, new StreamOffset[] { stream });
 	}
@@ -2182,7 +2200,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<String, String>> xReadGroupAsString(Consumer consumer, StreamReadOptions readOptions,
+	List<StringMapRecord> xReadGroupAsString(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<String>... streams);
 
 	/**
@@ -2195,7 +2213,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<String, String>> xRevRange(String key,
+	default List<StringMapRecord> xRevRange(String key,
 			org.springframework.data.domain.Range<String> range) {
 		return xRevRange(key, range, Limit.unlimited());
 	}
@@ -2211,7 +2229,7 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<String, String>> xRevRange(String key, org.springframework.data.domain.Range<String> range,
+	List<StringMapRecord> xRevRange(String key, org.springframework.data.domain.Range<String> range,
 			Limit limit);
 
 	/**
