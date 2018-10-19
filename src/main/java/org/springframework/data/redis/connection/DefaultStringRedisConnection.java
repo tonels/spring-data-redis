@@ -87,6 +87,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 		}
 	};
 
+	private ListConverter<ByteMapRecord, StringMapRecord> listByteMapRecordToStringMapRecordConverter = new ListConverter<>(byteMapRecordToStringMapRecordConverter);
+
 	@SuppressWarnings("rawtypes") private Queue<Converter> pipelineConverters = new LinkedList<>();
 	@SuppressWarnings("rawtypes") private Queue<Converter> txConverters = new LinkedList<>();
 	private boolean deserializePipelineAndTxResults = false;
@@ -3703,7 +3705,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 */
 	@Override
 	public List<StringMapRecord> xRange(String key, org.springframework.data.domain.Range<String> range, Limit limit) {
-		return convertAndReturn(delegate.xRange(serialize(key), range, limit), byteMapRecordToStringMapRecordConverter);
+		return convertAndReturn(delegate.xRange(serialize(key), range, limit), listByteMapRecordToStringMapRecordConverter);
 	}
 
 	/*
@@ -3712,7 +3714,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 */
 	@Override
 	public List<StringMapRecord> xReadAsString(StreamReadOptions readOptions, StreamOffset<String>... streams) {
-		return convertAndReturn(delegate.xRead(readOptions, serialize(streams)), byteMapRecordToStringMapRecordConverter);
+		return convertAndReturn(delegate.xRead(readOptions, serialize(streams)), listByteMapRecordToStringMapRecordConverter);
 	}
 
 	/*
@@ -3724,7 +3726,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 			StreamOffset<String>... streams) {
 
 		return convertAndReturn(delegate.xReadGroup(consumer, readOptions, serialize(streams)),
-				byteMapRecordToStringMapRecordConverter);
+				listByteMapRecordToStringMapRecordConverter);
 	}
 
 	/*
@@ -3734,7 +3736,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	@Override
 	public List<StringMapRecord> xRevRange(String key, org.springframework.data.domain.Range<String> range, Limit limit) {
 
-		return convertAndReturn(delegate.xRevRange(serialize(key), range, limit), byteMapRecordToStringMapRecordConverter);
+		return convertAndReturn(delegate.xRevRange(serialize(key), range, limit), listByteMapRecordToStringMapRecordConverter);
 	}
 
 	/*
@@ -3873,6 +3875,10 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 
 			addResultConverter(converter);
 			return null;
+		}
+
+		if(!(converter instanceof ListConverter) && value instanceof List) {
+			return (T) new ListConverter<>(converter).convert((List)value);
 		}
 
 		return value == null ? null

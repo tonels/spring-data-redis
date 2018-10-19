@@ -1,5 +1,7 @@
 package org.springframework.data.redis.connection;
 
+import lombok.EqualsAndHashCode;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -10,6 +12,7 @@ import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.StringMapRecord;
 import org.springframework.lang.Nullable;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -40,7 +43,6 @@ public class StreamRecords {
 	public static RecordBuilder newRecord() {
 		return new RecordBuilder(null, EntryId.autoGenerate());
 	}
-
 
 	public static class RecordBuilder<S> {
 
@@ -79,10 +81,10 @@ public class StreamRecords {
 			return new ObjectBackedRecord<>(stream, id, value);
 		}
 
-		public ByteMapRecord ofBytes(Map<byte[],byte[]> value) {
+		public ByteMapRecord ofBytes(Map<byte[], byte[]> value) {
 
 			// todo auto conversion of known values
-			return new ByteMapBackedRecord((byte[])stream, id, value);
+			return new ByteMapBackedRecord((byte[]) stream, id, value);
 		}
 	}
 
@@ -135,9 +137,45 @@ public class StreamRecords {
 		public String toString() {
 			return "MapBackedRecord{" + "entryId=" + entryId + ", kvMap=" + kvMap + '}';
 		}
+
+		@Override
+		public boolean equals(Object o) {
+
+			if(o == null) {
+				return false;
+			}
+
+			if (this == o) {
+				return true;
+			}
+
+			if (!ClassUtils.isAssignable(MapBackedRecord.class, o.getClass())) {
+				return false;
+			}
+
+			MapBackedRecord<?, ?, ?> that = (MapBackedRecord<?, ?, ?>) o;
+
+			if (!ObjectUtils.nullSafeEquals(this.stream, that.stream)) {
+				return false;
+			}
+
+			if (!ObjectUtils.nullSafeEquals(this.entryId, that.entryId)) {
+				return false;
+			}
+
+			return ObjectUtils.nullSafeEquals(this.kvMap, that.kvMap);
+		}
+
+		@Override
+		public int hashCode() {
+			int result = stream != null ? stream.hashCode() : 0;
+			result = 31 * result + entryId.hashCode();
+			result = 31 * result + kvMap.hashCode();
+			return result;
+		}
 	}
 
-	static class ByteMapBackedRecord extends MapBackedRecord<byte[], byte[], byte[]> implements ByteMapRecord{
+	static class ByteMapBackedRecord extends MapBackedRecord<byte[], byte[], byte[]> implements ByteMapRecord {
 
 		ByteMapBackedRecord(byte[] stream, EntryId entryId, Map<byte[], byte[]> map) {
 			super(stream, entryId, map);
@@ -170,6 +208,7 @@ public class StreamRecords {
 
 	}
 
+	@EqualsAndHashCode
 	static class ObjectBackedRecord<S, V> implements ObjectRecord<S, V> {
 
 		private @Nullable S stream;

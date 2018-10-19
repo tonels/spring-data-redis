@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.redis.connection.RedisGeoCommands.DistanceUnit;
@@ -1667,10 +1668,32 @@ public class DefaultStringRedisConnectionTxTests extends DefaultStringRedisConne
 	}
 
 	@Test // DATAREDIS-864
-	public void xGroupDelComsumerShouldDelegateAndConvertCorrectly() {
+	@Ignore
+	public void xGroupDelConsumerShouldDelegateAndConvertCorrectly() {
 
 		doReturn(Arrays.asList(Boolean.TRUE)).when(nativeConnection).exec();
 		super.xGroupDelConsumerShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xLenShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(1L)).when(nativeConnection).exec();
+		super.xLenShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupDestroyShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Boolean.TRUE)).when(nativeConnection).exec();
+		super.xGroupDestroyShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).exec();
+		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
 	protected List<Object> getResults() {

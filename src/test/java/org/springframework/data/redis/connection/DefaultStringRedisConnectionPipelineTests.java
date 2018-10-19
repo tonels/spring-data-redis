@@ -22,11 +22,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.redis.connection.RedisGeoCommands.DistanceUnit;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.connection.StreamRecords.MapBackedRecord;
+import org.springframework.data.redis.connection.StreamRecords.StringMapBackedRecord;
 
 /**
  * Unit test of {@link DefaultStringRedisConnection} that executes commands in a pipeline
@@ -1673,7 +1677,28 @@ public class DefaultStringRedisConnectionPipelineTests extends DefaultStringRedi
 	public void xGroupDelComsumerShouldDelegateAndConvertCorrectly() {
 
 		doReturn(Arrays.asList(Boolean.TRUE)).when(nativeConnection).closePipeline();
-		super.xGroupCreateShouldDelegateAndConvertCorrectly();
+		super.xGroupDelConsumerShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xLenShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(1L)).when(nativeConnection).closePipeline();
+		super.xLenShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupDestroyShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Boolean.TRUE)).when(nativeConnection).closePipeline();
+		super.xGroupDestroyShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).closePipeline();
+		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
 	protected List<Object> getResults() {

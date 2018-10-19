@@ -1785,7 +1785,28 @@ public class DefaultStringRedisConnectionPipelineTxTests extends DefaultStringRe
 	public void xGroupDelComsumerShouldDelegateAndConvertCorrectly() {
 
 		doReturn(Arrays.asList(Arrays.asList(Boolean.TRUE))).when(nativeConnection).closePipeline();
-		super.xGroupCreateShouldDelegateAndConvertCorrectly();
+		super.xGroupDelConsumerShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xLenShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(1L))).when(nativeConnection).closePipeline();
+		super.xLenShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupDestroyShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(Boolean.TRUE))).when(nativeConnection).closePipeline();
+		super.xGroupDestroyShouldDelegateAndConvertCorrectly();
+	}
+
+	@Test // DATAREDIS-864
+	public void xRangeShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
 
