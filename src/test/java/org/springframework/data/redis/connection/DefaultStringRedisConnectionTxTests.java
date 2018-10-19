@@ -1696,6 +1696,13 @@ public class DefaultStringRedisConnectionTxTests extends DefaultStringRedisConne
 		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
+	@Test // DATAREDIS-864
+	public void xReadShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))).when(nativeConnection).exec();
+		super.xReadShouldDelegateAndConvertCorrectly();
+	}
+
 	protected List<Object> getResults() {
 		return connection.exec();
 	}

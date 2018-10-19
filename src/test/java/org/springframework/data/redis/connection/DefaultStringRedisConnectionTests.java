@@ -49,6 +49,9 @@ import org.springframework.data.redis.connection.RedisServerCommands.ShutdownOpt
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
+import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
+import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
+import org.springframework.data.redis.connection.RedisStreamCommands.StringMapRecord;
 import org.springframework.data.redis.connection.RedisStringCommands.BitOperation;
 import org.springframework.data.redis.connection.RedisZSetCommands.Aggregate;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -72,7 +75,8 @@ public class DefaultStringRedisConnectionTests {
 
 	protected List<Object> actual = new ArrayList<>();
 
-	@Mock protected RedisConnection nativeConnection;
+//	@Mock protected RedisConnection nativeConnection;
+	protected RedisConnection nativeConnection;
 
 	protected DefaultStringRedisConnection connection;
 
@@ -116,7 +120,11 @@ public class DefaultStringRedisConnectionTests {
 
 	@Before
 	public void setUp() {
+
+
 		MockitoAnnotations.initMocks(this);
+//		this.nativeConnection = mock(RedisConnection.class, withSettings().verboseLogging());
+		this.nativeConnection = mock(RedisConnection.class);
 		this.connection = new DefaultStringRedisConnection(nativeConnection);
 		bytesMap.put(fooBytes, barBytes);
 		stringMap.put(foo, bar);
@@ -2109,8 +2117,6 @@ public class DefaultStringRedisConnectionTests {
 	@Test // DATAREDIS-864
 	public void xRangeShouldDelegateAndConvertCorrectly() {
 
-		MapBackedRecord record = new StringMapBackedRecord(null, null, null);
-
 		doReturn(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))
 				.when(nativeConnection).xRange(any(), any(), any());
 
@@ -2118,7 +2124,18 @@ public class DefaultStringRedisConnectionTests {
 
 		Assertions.assertThat(getResults()).containsExactly(
 				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
+	}
 
+
+	@Test // DATAREDIS-864
+	public void xReadShouldDelegateAndConvertCorrectly() {
+
+		doReturn(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap)))
+				.when(nativeConnection).xRead(any(), any());
+		actual.add(connection.xReadAsString(StreamReadOptions.empty(), StreamOffset.create("stream-1", ReadOffset.latest())));
+
+		Assertions.assertThat(getResults()).containsExactly(
+				Collections.singletonList(StreamRecords.newRecord().in(bar2).withId("stream-1").ofStrings(stringMap)));
 	}
 
 	protected List<Object> getResults() {

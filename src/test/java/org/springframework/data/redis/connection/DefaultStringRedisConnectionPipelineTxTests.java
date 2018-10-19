@@ -1809,7 +1809,12 @@ public class DefaultStringRedisConnectionPipelineTxTests extends DefaultStringRe
 		super.xRangeShouldDelegateAndConvertCorrectly();
 	}
 
+	@Test // DATAREDIS-864
+	public void xReadShouldDelegateAndConvertCorrectly() {
 
+		doReturn(Arrays.asList(Arrays.asList(Collections.singletonList(StreamRecords.newRecord().in(bar2Bytes).withId("stream-1").ofBytes(bytesMap))))).when(nativeConnection).closePipeline();
+		super.xReadShouldDelegateAndConvertCorrectly();
+	}
 
 	@SuppressWarnings("unchecked")
 	protected List<Object> getResults() {

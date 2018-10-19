@@ -209,19 +209,6 @@ public interface RedisStreamCommands {
 	 * Read messages from one or more {@link StreamOffset}s.
 	 *
 	 * @param readOptions read arguments.
-	 * @param stream the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
-	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
-	 */
-	@Nullable
-	default List<ByteMapRecord> xRead(StreamReadOptions readOptions, StreamOffset<byte[]> stream) {
-		return xRead(readOptions, new StreamOffset[] { stream });
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s.
-	 *
-	 * @param readOptions read arguments.
 	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
