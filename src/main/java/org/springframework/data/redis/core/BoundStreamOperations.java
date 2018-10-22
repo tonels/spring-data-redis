@@ -184,7 +184,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> reverseRange(Range<String> range) {
+	default List<MapRecord<K, HK, HV>> reverseRange(Range<String> range) {
 		return reverseRange(range, Limit.unlimited());
 	}
 
@@ -197,7 +197,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> reverseRange(Range<String> range, Limit limit);
+	List<MapRecord<K, HK, HV>> reverseRange(Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

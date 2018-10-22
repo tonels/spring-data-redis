@@ -189,16 +189,25 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#reverseRange(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public List<StreamMessage<HK, HV>> reverseRange(K key, Range<String> range, Limit limit) {
+	public List<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit) {
 
-		return execute(new StreamMessagesDeserializingRedisCallback<K, HK, HV>() {
+		return execute(new RecordDeserializingRedisCallback<K, HK, HV>() {
+
 			@Nullable
 			@Override
-			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-				List<ByteMapRecord> x = connection.xRevRange(rawKey(key), range, limit);
-				return RedisStreamCommands.mapToStreamMessage(x);
+			List<ByteMapRecord> inRedis(RedisConnection connection) {
+				return connection.xRevRange(rawKey(key), range, limit);
 			}
 		}, true);
+
+//		return execute(new StreamMessagesDeserializingRedisCallback<K, HK, HV>() {
+//			@Nullable
+//			@Override
+//			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
+//				List<ByteMapRecord> x = connection.xRevRange(rawKey(key), range, limit);
+//				return RedisStreamCommands.mapToStreamMessage(x);
+//			}
+//		}, true);
 	}
 
 	@Override

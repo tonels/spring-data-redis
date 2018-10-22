@@ -158,7 +158,7 @@ class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<HK, HV>> reverseRange(Range<String> range, Limit limit) {
+	public List<MapRecord<K, HK, HV>> reverseRange(Range<String> range, Limit limit) {
 		return ops.reverseRange(getKey(), range, limit);
 	}
 

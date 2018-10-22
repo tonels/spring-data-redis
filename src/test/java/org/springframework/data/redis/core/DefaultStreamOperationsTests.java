@@ -152,9 +152,9 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		EntryId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 		EntryId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
-		List<StreamMessage<HK, HV>> messages = streamOps.reverseRange(key, Range.unbounded());
+		List<MapRecord<K, HK, HV>> messages = streamOps.reverseRange(key, Range.unbounded());
 
-		assertThat(messages).hasSize(2).extracting("id").containsSequence(messageId2.getValue(), messageId1.getValue());
+		assertThat(messages).hasSize(2).extracting("id").containsSequence(messageId2, messageId1);
 	}
 
 	@Test // DATAREDIS-864
