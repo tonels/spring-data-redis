@@ -27,6 +27,7 @@ import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
@@ -63,16 +64,11 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#add(java.lang.Object, java.util.Map)
 	 */
 	@Override
-	public String add(K key, Map<HK, HV> body) {
+	public EntryId add(MapRecord<K, HK, HV> record) {
 
-		byte[] rawKey = rawKey(key);
-		Map<byte[], byte[]> rawBody = new LinkedHashMap<>(body.size());
+		ByteMapRecord binaryRecord = record.serialize(keySerializer(), hashKeySerializer(), hashValueSerializer());
 
-		for (Map.Entry<? extends HK, ? extends HV> entry : body.entrySet()) {
-			rawBody.put(rawHashKey(entry.getKey()), rawHashValue(entry.getValue()));
-		}
-
-		return execute(connection -> connection.xAdd(rawKey, rawBody).getValue(), true);
+		return execute(connection -> connection.xAdd(binaryRecord), true);
 	}
 
 	/*

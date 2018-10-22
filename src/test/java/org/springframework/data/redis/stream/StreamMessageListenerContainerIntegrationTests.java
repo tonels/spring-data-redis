@@ -35,6 +35,7 @@ import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -125,7 +126,7 @@ public class StreamMessageListenerContainerIntegrationTests {
 		StreamMessageListenerContainer<String, String> container = StreamMessageListenerContainer.create(connectionFactory,
 				containerOptions);
 		BlockingQueue<StreamMessage<String, String>> queue = new LinkedBlockingQueue<>();
-		String messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
+		EntryId messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
 		redisTemplate.opsForStream().createGroup("my-stream", ReadOffset.from(messageId), "my-group");
 
 		container.start();
@@ -178,7 +179,7 @@ public class StreamMessageListenerContainerIntegrationTests {
 				.builder(StreamOffset.create("my-stream", ReadOffset.lastConsumed())).errorHandler(failures::add)
 				.consumer(Consumer.from("my-group", "my-consumer")).build();
 
-		String messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
+		EntryId messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
 		redisTemplate.opsForStream().createGroup("my-stream", ReadOffset.from(messageId), "my-group");
 
 		container.start();
@@ -211,7 +212,7 @@ public class StreamMessageListenerContainerIntegrationTests {
 				.consumer(Consumer.from("my-group", "my-consumer")) //
 				.build();
 
-		String messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
+		EntryId messageId = redisTemplate.opsForStream().add("my-stream", Collections.singletonMap("key", "value1"));
 		redisTemplate.opsForStream().createGroup("my-stream", ReadOffset.from(messageId), "my-group");
 
 		container.start();
