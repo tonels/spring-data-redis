@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -51,7 +52,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 	private final Executor taskExecutor;
 	private final ErrorHandler errorHandler;
 	private final StreamReadOptions readOptions;
-	private final RedisTemplate<K, V> template;
+	private final RedisTemplate<K, ?> template;
 
 	private final List<Subscription> subscriptions = new ArrayList<>();
 
@@ -92,6 +93,8 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 		RedisTemplate<K, V> template = new RedisTemplate<>();
 		template.setKeySerializer(containerOptions.getKeySerializer());
 		template.setValueSerializer(containerOptions.getBodySerializer());
+		template.setHashKeySerializer(containerOptions.getKeySerializer());
+		template.setHashValueSerializer(containerOptions.getBodySerializer());
 		template.setConnectionFactory(connectionFactory);
 		template.afterPropertiesSet();
 
@@ -192,7 +195,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 
 	private StreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
 
-		StreamOperations<K, V> streamOperations = template.opsForStream();
+		StreamOperations<K, ?, ?> streamOperations = template.opsForStream();
 
 		if (streamRequest instanceof StreamMessageListenerContainer.ConsumerStreamReadRequest) {
 
@@ -202,11 +205,19 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			Consumer consumer = consumerStreamRequest.getConsumer();
 
 			return new StreamPollTask<>(consumerStreamRequest, listener, errorHandler,
-					(key, offset) -> streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset)));
+					(key, offset) -> {
+						List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
+						return x;
+
+					});
 		}
 
 		return new StreamPollTask<>(streamRequest, listener, errorHandler,
-				(key, offset) -> streamOperations.read(readOptions, StreamOffset.create(key, offset)));
+				(key, offset) -> {
+
+					List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(readOptions, StreamOffset.create(key, offset));
+					return x;
+				});
 	}
 
 	private Subscription doRegister(Task task) {

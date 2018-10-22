@@ -32,7 +32,7 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-public interface BoundStreamOperations<K, V> {
+public interface BoundStreamOperations<HK, HV> {
 
 	/**
 	 * Acknowledge one or more messages as processed.
@@ -53,7 +53,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	String add(Map<K, V> body);
+	String add(Map<HK, HV> body);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -111,7 +111,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> range(Range<String> range) {
+	default List<StreamMessage<HK, HV>> range(Range<String> range) {
 		return range(range, Limit.unlimited());
 	}
 
@@ -124,7 +124,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> range(Range<String> range, Limit limit);
+	List<StreamMessage<HK, HV>> range(Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from {@link ReadOffset}.
@@ -134,7 +134,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(ReadOffset readOffset) {
+	default List<StreamMessage<HK, HV>> read(ReadOffset readOffset) {
 		return read(StreamReadOptions.empty(), readOffset);
 	}
 
@@ -147,7 +147,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> read(StreamReadOptions readOptions, ReadOffset readOffset);
+	List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset);
 
 	/**
 	 * Read messages starting from {@link ReadOffset}. using a consumer group.
@@ -158,7 +158,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(Consumer consumer, ReadOffset readOffset) {
+	default List<StreamMessage<HK, HV>> read(Consumer consumer, ReadOffset readOffset) {
 		return read(consumer, StreamReadOptions.empty(), readOffset);
 	}
 
@@ -172,7 +172,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset);
+	List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
@@ -182,7 +182,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> reverseRange(Range<String> range) {
+	default List<StreamMessage<HK, HV>> reverseRange(Range<String> range) {
 		return reverseRange(range, Limit.unlimited());
 	}
 
@@ -195,7 +195,7 @@ public interface BoundStreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> reverseRange(Range<String> range, Limit limit);
+	List<StreamMessage<HK, HV>> reverseRange(Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

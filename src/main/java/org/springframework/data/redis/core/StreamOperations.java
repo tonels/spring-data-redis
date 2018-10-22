@@ -33,7 +33,7 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-public interface StreamOperations<K, V> {
+public interface StreamOperations<K, HK, HV> {
 
 	/**
 	 * Acknowledge one or more messages as processed.
@@ -56,7 +56,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	String add(K key, Map<K, V> body);
+	String add(K key, Map<HK, HV> body);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -120,7 +120,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> range(K key, Range<String> range) {
+	default List<StreamMessage<HK, HV>> range(K key, Range<String> range) {
 		return range(key, range, Limit.unlimited());
 	}
 
@@ -134,7 +134,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> range(K key, Range<String> range, Limit limit);
+	List<StreamMessage<HK, HV>> range(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
@@ -144,7 +144,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(StreamOffset<K> stream) {
+	default List<StreamMessage<HK, HV>> read(StreamOffset<K> stream) {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -156,7 +156,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(StreamOffset<K>... streams) {
+	default List<StreamMessage<HK, HV>> read(StreamOffset<K>... streams) {
 		return read(StreamReadOptions.empty(), streams);
 	}
 
@@ -169,7 +169,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -182,7 +182,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+	List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -193,7 +193,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(Consumer consumer, StreamOffset<K> stream) {
+	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
 		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -206,7 +206,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(Consumer consumer, StreamOffset<K>... streams) {
+	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
 		return read(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -220,7 +220,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(consumer, readOptions, new StreamOffset[] { stream });
 	}
 
@@ -234,7 +234,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
+	List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
@@ -245,7 +245,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<K, V>> reverseRange(K key, Range<String> range) {
+	default List<StreamMessage<HK, HV>> reverseRange(K key, Range<String> range) {
 		return reverseRange(key, range, Limit.unlimited());
 	}
 
@@ -259,7 +259,7 @@ public interface StreamOperations<K, V> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<K, V>> reverseRange(K key, Range<String> range, Limit limit);
+	List<StreamMessage<HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

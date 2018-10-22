@@ -34,9 +34,9 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> implements BoundStreamOperations<K, V> {
+class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<K> implements BoundStreamOperations<HK, HV> {
 
-	private final StreamOperations<K, V> ops;
+	private final StreamOperations<K, HK, HV> ops;
 
 	/**
 	 * Constructs a new <code>DefaultBoundSetOperations</code> instance.
@@ -44,7 +44,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 * @param key
 	 * @param operations
 	 */
-	DefaultBoundStreamOperations(K key, RedisOperations<K, V> operations) {
+	DefaultBoundStreamOperations(K key, RedisOperations<K, ?> operations) {
 
 		super(key, operations);
 		this.ops = operations.opsForStream();
@@ -66,7 +66,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 */
 	@Nullable
 	@Override
-	public String add(Map<K, V> body) {
+	public String add(Map<HK, HV> body) {
 		return ops.add(getKey(), body);
 	}
 
@@ -126,7 +126,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<K, V>> range(Range<String> range, Limit limit) {
+	public List<StreamMessage<HK, HV>> range(Range<String> range, Limit limit) {
 		return ops.range(getKey(), range, limit);
 	}
 
@@ -136,7 +136,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<K, V>> read(StreamReadOptions readOptions, ReadOffset readOffset) {
+	public List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset) {
 		return ops.read(readOptions, StreamOffset.create(getKey(), readOffset));
 	}
 
@@ -146,7 +146,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset) {
+	public List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset) {
 		return ops.read(consumer, readOptions, StreamOffset.create(getKey(), readOffset));
 	}
 
@@ -156,7 +156,7 @@ class DefaultBoundStreamOperations<K, V> extends DefaultBoundKeyOperations<K> im
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<K, V>> reverseRange(Range<String> range, Limit limit) {
+	public List<StreamMessage<HK, HV>> reverseRange(Range<String> range, Limit limit) {
 		return ops.reverseRange(getKey(), range, limit);
 	}
 
