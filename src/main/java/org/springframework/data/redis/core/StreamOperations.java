@@ -127,7 +127,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> range(K key, Range<String> range) {
+	default List<MapRecord<K, HK, HV>> range(K key, Range<String> range) {
 		return range(key, range, Limit.unlimited());
 	}
 
@@ -141,7 +141,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> range(K key, Range<String> range, Limit limit);
+	List<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.

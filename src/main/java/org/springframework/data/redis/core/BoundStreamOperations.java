@@ -21,6 +21,7 @@ import java.util.Map;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
@@ -33,7 +34,7 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-public interface BoundStreamOperations<HK, HV> {
+public interface BoundStreamOperations<K, HK, HV> {
 
 	/**
 	 * Acknowledge one or more messages as processed.
@@ -112,7 +113,7 @@ public interface BoundStreamOperations<HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> range(Range<String> range) {
+	default List<MapRecord<K, HK, HV>> range(Range<String> range) {
 		return range(range, Limit.unlimited());
 	}
 
@@ -125,7 +126,7 @@ public interface BoundStreamOperations<HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> range(Range<String> range, Limit limit);
+	List<MapRecord<K, HK, HV>> range(Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from {@link ReadOffset}.

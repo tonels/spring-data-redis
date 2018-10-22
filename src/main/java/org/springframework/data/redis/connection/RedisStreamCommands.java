@@ -824,12 +824,15 @@ public interface RedisStreamCommands {
 							.entrySet().iterator().next()).withStreamKey(serializer.deserialize(getStream()));
 		}
 
-		default <K, HK, HV> MapRecord<K, HK, HV> deserialize(RedisSerializer<? extends K> streamSerializer,
-				RedisSerializer<? extends HK> fieldSerializer, RedisSerializer<? extends HV> valueSerializer) {
+		default <K, HK, HV> MapRecord<K, HK, HV> deserialize(@Nullable RedisSerializer<? extends K> streamSerializer,
+				@Nullable RedisSerializer<? extends HK> fieldSerializer,
+				@Nullable RedisSerializer<? extends HV> valueSerializer) {
 
 			return mapEntries(it -> Collections
-					.<HK, HV> singletonMap(fieldSerializer.deserialize(it.getKey()), valueSerializer.deserialize(it.getValue()))
-					.entrySet().iterator().next()).withStreamKey(streamSerializer.deserialize(getStream()));
+					.<HK, HV> singletonMap(fieldSerializer != null ? fieldSerializer.deserialize(it.getKey()) : (HK) it.getKey(),
+							valueSerializer != null ? valueSerializer.deserialize(it.getValue()) : (HV) it.getValue())
+					.entrySet().iterator().next())
+							.withStreamKey(streamSerializer != null ? streamSerializer.deserialize(getStream()) : (K) getStream());
 		}
 
 		@Override

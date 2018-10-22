@@ -22,6 +22,7 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.DataType;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -35,7 +36,7 @@ import org.springframework.lang.Nullable;
  * @author Mark Paluch
  * @since 2.2
  */
-class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<K> implements BoundStreamOperations<HK, HV> {
+class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<K> implements BoundStreamOperations<K, HK, HV> {
 
 	private final StreamOperations<K, HK, HV> ops;
 
@@ -127,7 +128,7 @@ class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<HK, HV>> range(Range<String> range, Limit limit) {
+	public List<MapRecord<K, HK, HV>> range(Range<String> range, Limit limit) {
 		return ops.range(getKey(), range, limit);
 	}
 

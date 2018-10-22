@@ -35,6 +35,7 @@ import org.springframework.data.redis.ObjectFactory;
 import org.springframework.data.redis.RedisTestProfileValueSource;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -107,17 +108,17 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 
 		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
-		List<StreamMessage<HK, HV>> messages = streamOps.range(key, Range.unbounded());
+		List<MapRecord<K, HK, HV>> messages = streamOps.range(key, Range.unbounded());
 
 		assertThat(messages).hasSize(1);
 
-		StreamMessage<HK, HV> message = messages.get(0);
+		MapRecord<K, HK, HV> message = messages.get(0);
 
-		assertThat(message.getId()).isEqualTo(messageId.getValue());
+		assertThat(message.getId()).isEqualTo(messageId);
 		assertThat(message.getStream()).isEqualTo(key);
 
 		if (!(key instanceof byte[] || value instanceof byte[])) {
-			assertThat(message.getBody()).containsEntry(hashKey, value);
+			assertThat(message.getValue()).containsEntry(hashKey, value);
 		}
 	}
 
@@ -131,14 +132,14 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		EntryId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 		EntryId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
-		List<StreamMessage<HK, HV>> messages = streamOps.range(key,
+		List<MapRecord<K, HK, HV>> messages = streamOps.range(key,
 				Range.from(Bound.inclusive(messageId1.getValue())).to(Bound.inclusive(messageId2.getValue())), Limit.limit().count(1));
 
 		assertThat(messages).hasSize(1);
 
-		StreamMessage<HK, HV> message = messages.get(0);
+		MapRecord<K, HK, HV> message = messages.get(0);
 
-		assertThat(message.getId()).isEqualTo(messageId1.getValue());
+		assertThat(message.getId()).isEqualTo(messageId1);
 	}
 
 	@Test // DATAREDIS-864
