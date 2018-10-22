@@ -23,7 +23,6 @@ import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -151,7 +150,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(StreamOffset<K> stream) {
+	default List<MapRecord<K,HK, HV>> read(StreamOffset<K> stream) {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -163,7 +162,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(StreamOffset<K>... streams) {
+	default List<MapRecord<K, HK, HV>> read(StreamOffset<K>... streams) {
 		return read(StreamReadOptions.empty(), streams);
 	}
 
@@ -176,7 +175,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default List<MapRecord<K,HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -189,7 +188,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+	List<MapRecord<K,HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -200,7 +199,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
+	default List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
 		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -213,7 +212,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
+	default List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
 		return read(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -227,7 +226,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(consumer, readOptions, new StreamOffset[] { stream });
 	}
 
@@ -241,7 +240,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
+	List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.

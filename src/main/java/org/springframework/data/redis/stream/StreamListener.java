@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.stream;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 
 /**
@@ -33,5 +34,5 @@ public interface StreamListener<K, V> {
 	 *
 	 * @param message never {@literal null}.
 	 */
-	void onMessage(StreamMessage<K, V> message);
+	void onMessage(Record<K, V> message);
 }

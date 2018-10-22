@@ -166,17 +166,17 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 
 		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
-		List<StreamMessage<HK, HV>> messages = streamOps.read(StreamOffset.create(key, ReadOffset.from("0-0")));
+		List<MapRecord<K,HK, HV>> messages = streamOps.read(StreamOffset.create(key, ReadOffset.from("0-0")));
 
 		assertThat(messages).hasSize(1);
 
-		StreamMessage<HK, HV> message = messages.get(0);
+		MapRecord<K,HK, HV> message = messages.get(0);
 
-		assertThat(message.getId()).isEqualTo(messageId.getValue());
+		assertThat(message.getId()).isEqualTo(messageId);
 		assertThat(message.getStream()).isEqualTo(key);
 
 		if (!(key instanceof byte[] || value instanceof byte[])) {
-			assertThat(message.getBody()).containsEntry(hashKey, value);
+			assertThat(message.getValue()).containsEntry(hashKey, value);
 		}
 	}
 
@@ -190,7 +190,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		streamOps.add(key, Collections.singletonMap(hashKey, value));
 		streamOps.add(key, Collections.singletonMap(hashKey, value));
 
-		List<StreamMessage<HK, HV>> messages = streamOps.read(StreamReadOptions.empty().count(2),
+		List<MapRecord<K,HK, HV>> messages = streamOps.read(StreamReadOptions.empty().count(2),
 				StreamOffset.create(key, ReadOffset.from("0-0")));
 
 		assertThat(messages).hasSize(2);
@@ -206,18 +206,18 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 		streamOps.createGroup(key, ReadOffset.from("0-0"), "my-group");
 
-		List<StreamMessage<HK, HV>> messages = streamOps.read(Consumer.from("my-group", "my-consumer"),
+		List<MapRecord<K, HK, HV>> messages = streamOps.read(Consumer.from("my-group", "my-consumer"),
 				StreamOffset.create(key, ReadOffset.lastConsumed()));
 
 		assertThat(messages).hasSize(1);
 
-		StreamMessage<HK, HV> message = messages.get(0);
+		MapRecord<K, HK, HV> message = messages.get(0);
 
-		assertThat(message.getId()).isEqualTo(messageId.getValue());
+		assertThat(message.getId()).isEqualTo(messageId);
 		assertThat(message.getStream()).isEqualTo(key);
 
 		if (!(key instanceof byte[] || value instanceof byte[])) {
-			assertThat(message.getBody()).containsEntry(hashKey, value);
+			assertThat(message.getValue()).containsEntry(hashKey, value);
 		}
 	}
 

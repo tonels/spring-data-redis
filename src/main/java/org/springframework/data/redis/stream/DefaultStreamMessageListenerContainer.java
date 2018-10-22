@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
@@ -204,19 +205,19 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 			StreamReadOptions readOptions = consumerStreamRequest.isAutoAck() ? this.readOptions : this.readOptions.noack();
 			Consumer consumer = consumerStreamRequest.getConsumer();
 
-			return new StreamPollTask<>(consumerStreamRequest, listener, errorHandler,
+			return new StreamPollTask<K, V>(consumerStreamRequest, listener, errorHandler,
 					(key, offset) -> {
-						List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
-						return x;
+
+						return (List<Record<K, V>>)(List)streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
+//						List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(consumer, readOptions, StreamOffset.create(key, offset));
+//						return x;
 
 					});
 		}
 
 		return new StreamPollTask<>(streamRequest, listener, errorHandler,
 				(key, offset) -> {
-
-					List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(readOptions, StreamOffset.create(key, offset));
-					return x;
+					return (List<Record<K, V>>)(List) streamOperations.read(readOptions, StreamOffset.create(key, offset));
 				});
 	}
 

@@ -138,7 +138,7 @@ class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset) {
+	public List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset) {
 		return ops.read(readOptions, StreamOffset.create(getKey(), readOffset));
 	}
 
@@ -148,7 +148,7 @@ class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<
 	 */
 	@Nullable
 	@Override
-	public List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset) {
+	public List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset) {
 		return ops.read(consumer, readOptions, StreamOffset.create(getKey(), readOffset));
 	}
 

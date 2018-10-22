@@ -147,20 +147,14 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
+	public List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
-		return execute(new StreamMessagesDeserializingRedisCallback<K, HK, HV>() {
+		return execute(new RecordDeserializingRedisCallback<K, HK, HV>() {
+
 			@Nullable
 			@Override
-			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-
-				List<ByteMapRecord> x = connection.xRead(readOptions, rawStreamOffsets(streams));
-				List<StreamMessage<byte[], byte[]>> result = new ArrayList<>();
-				for (ByteMapRecord record : x) {
-					result.add(new StreamMessage<>(record.getStream(), record.getId().getValue(), record.getValue()));
-				}
-
-				return result;
+			List<ByteMapRecord> inRedis(RedisConnection connection) {
+				return connection.xRead(readOptions, rawStreamOffsets(streams));
 			}
 		}, true);
 	}
@@ -170,16 +164,15 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions,
+	public List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<K>... streams) {
 
-		return execute(new StreamMessagesDeserializingRedisCallback<K, HK, HV>() {
+		return execute(new RecordDeserializingRedisCallback<K, HK, HV>() {
+
 			@Nullable
 			@Override
-			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-
-				List<ByteMapRecord> x = connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
-				return RedisStreamCommands.mapToStreamMessage(x);
+			List<ByteMapRecord> inRedis(RedisConnection connection) {
+				return connection.xReadGroup(consumer, readOptions, rawStreamOffsets(streams));
 			}
 		}, true);
 	}
@@ -199,15 +192,6 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 				return connection.xRevRange(rawKey(key), range, limit);
 			}
 		}, true);
-
-//		return execute(new StreamMessagesDeserializingRedisCallback<K, HK, HV>() {
-//			@Nullable
-//			@Override
-//			List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection) {
-//				List<ByteMapRecord> x = connection.xRevRange(rawKey(key), range, limit);
-//				return RedisStreamCommands.mapToStreamMessage(x);
-//			}
-//		}, true);
 	}
 
 	@Override

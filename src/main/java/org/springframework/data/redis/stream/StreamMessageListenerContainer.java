@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 
@@ -26,7 +27,9 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -124,7 +127,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 	 * @param connectionFactory must not be {@literal null}.
 	 * @return the new {@link StreamMessageListenerContainer}.
 	 */
-	static StreamMessageListenerContainer<String, String> create(RedisConnectionFactory connectionFactory) {
+	static StreamMessageListenerContainer<String, Map<String, String>> create(RedisConnectionFactory connectionFactory) {
 
 		Assert.notNull(connectionFactory, "RedisConnectionFactory must not be null!");
 
@@ -481,7 +484,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 		/**
 		 * @return a new builder for {@link StreamMessageListenerContainerOptions}.
 		 */
-		static StreamMessageListenerContainerOptionsBuilder<String, String> builder() {
+		static StreamMessageListenerContainerOptionsBuilder<String, Map<String, String>> builder() {
 			return new StreamMessageListenerContainerOptionsBuilder<>().serializer(StringRedisSerializer.UTF_8);
 		}
 
@@ -606,7 +609,7 @@ public interface StreamMessageListenerContainer<K, V> extends SmartLifecycle {
 		 * @param serializer must not be {@literal null}.
 		 * @return {@code this} {@link StreamMessageListenerContainerOptionsBuilder}.
 		 */
-		public <T> StreamMessageListenerContainerOptionsBuilder<T, T> serializer(RedisSerializer<T> serializer) {
+		public <T> StreamMessageListenerContainerOptionsBuilder<T, Map<T, T>> serializer(RedisSerializer<T> serializer) {
 
 			this.keySerializer = (RedisSerializer) serializer;
 			this.bodySerializer = (RedisSerializer) serializer;

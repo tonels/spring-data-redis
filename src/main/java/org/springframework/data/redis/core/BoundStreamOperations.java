@@ -136,7 +136,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(ReadOffset readOffset) {
+	default List<MapRecord<K, HK, HV>> read(ReadOffset readOffset) {
 		return read(StreamReadOptions.empty(), readOffset);
 	}
 
@@ -149,7 +149,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset);
+	List<MapRecord<K,HK, HV>> read(StreamReadOptions readOptions, ReadOffset readOffset);
 
 	/**
 	 * Read messages starting from {@link ReadOffset}. using a consumer group.
@@ -160,7 +160,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<StreamMessage<HK, HV>> read(Consumer consumer, ReadOffset readOffset) {
+	default List<MapRecord<K,HK, HV>> read(Consumer consumer, ReadOffset readOffset) {
 		return read(consumer, StreamReadOptions.empty(), readOffset);
 	}
 
@@ -174,7 +174,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	List<StreamMessage<HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset);
+	List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, ReadOffset readOffset);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
