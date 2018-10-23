@@ -34,7 +34,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.geo.Circle;
 import org.springframework.data.geo.Distance;
@@ -47,18 +46,15 @@ import org.springframework.data.redis.connection.RedisGeoCommands.GeoRadiusComma
 import org.springframework.data.redis.connection.RedisListCommands.Position;
 import org.springframework.data.redis.connection.RedisServerCommands.ShutdownOption;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
-import org.springframework.data.redis.connection.RedisStreamCommands.StringMapRecord;
 import org.springframework.data.redis.connection.RedisStringCommands.BitOperation;
 import org.springframework.data.redis.connection.RedisZSetCommands.Aggregate;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
 import org.springframework.data.redis.connection.RedisZSetCommands.Tuple;
 import org.springframework.data.redis.connection.RedisZSetCommands.Weights;
-import org.springframework.data.redis.connection.StreamRecords.MapBackedRecord;
-import org.springframework.data.redis.connection.StreamRecords.StringMapBackedRecord;
 import org.springframework.data.redis.connection.StringRedisConnection.StringTuple;
 import org.springframework.data.redis.connection.convert.Converters;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -2050,28 +2046,28 @@ public class DefaultStringRedisConnectionTests {
 	@Test // DATAREDIS-864
 	public void xAckShouldDelegateAndConvertCorrectly() {
 
-		doReturn(1L).when(nativeConnection).xAck(any(byte[].class), any(String.class), eq(EntryId.of("1-1")));
+		doReturn(1L).when(nativeConnection).xAck(any(byte[].class), any(String.class), eq(RecordId.of("1-1")));
 
-		actual.add(connection.xAck("key", "group", EntryId.of("1-1")));
+		actual.add(connection.xAck("key", "group", RecordId.of("1-1")));
 		Assertions.assertThat(getResults()).containsExactly(1L);
 	}
 
 	@Test // DATAREDIS-864
 	public void xAddShouldAppendRecordCorrectly() {
 
-		doReturn(EntryId.of("1-1")).when(nativeConnection).xAdd(any());
+		doReturn(RecordId.of("1-1")).when(nativeConnection).xAdd(any());
 		actual.add(connection
 				.xAdd(StreamRecords.newRecord().in("stream-1").ofStrings(Collections.singletonMap("field", "value"))));
 
-		Assertions.assertThat(getResults()).containsExactly(EntryId.of("1-1"));
+		Assertions.assertThat(getResults()).containsExactly(RecordId.of("1-1"));
 	}
 
 	@Test // DATAREDIS-864
 	public void xDelShouldDelegateAndConvertCorrectly() {
 
-		doReturn(1L).when(nativeConnection).xDel(any(byte[].class), eq(EntryId.of("1-1")));
+		doReturn(1L).when(nativeConnection).xDel(any(byte[].class), eq(RecordId.of("1-1")));
 
-		actual.add(connection.xDel("key", EntryId.of("1-1")));
+		actual.add(connection.xDel("key", RecordId.of("1-1")));
 		Assertions.assertThat(getResults()).containsExactly(1L);
 	}
 

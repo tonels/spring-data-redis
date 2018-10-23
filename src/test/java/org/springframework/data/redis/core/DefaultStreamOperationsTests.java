@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.assertj.core.api.Assumptions;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +36,7 @@ import org.springframework.data.redis.ObjectFactory;
 import org.springframework.data.redis.Person;
 import org.springframework.data.redis.RedisTestProfileValueSource;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
@@ -110,7 +109,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.range(key, Range.unbounded());
 
@@ -132,7 +131,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		K key = keyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
 
 		List<ObjectRecord<K, HV>> messages = streamOps.range(key, Range.unbounded(), (Class<HV>) value.getClass());
 
@@ -154,7 +153,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 
 		Assumptions.assumeThat(value).isNotInstanceOf(Person.class);
 
-		EntryId messageId = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.range(key, Range.unbounded());
 
@@ -175,8 +174,8 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
-		EntryId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.range(key,
 				Range.from(Bound.inclusive(messageId1.getValue())).to(Bound.inclusive(messageId2.getValue())),
@@ -196,8 +195,8 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
-		EntryId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId1 = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId2 = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.reverseRange(key, Range.unbounded());
 
@@ -210,8 +209,8 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		K key = keyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId1 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
-		EntryId messageId2 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId1 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId2 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
 
 		List<ObjectRecord<K, HV>> messages = streamOps.reverseRange(key, Range.unbounded(), (Class<HV>) value.getClass());
 
@@ -232,7 +231,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.read(StreamOffset.create(key, ReadOffset.from("0-0")));
 
@@ -254,8 +253,8 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		K key = keyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId1 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
-		EntryId messageId2 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId1 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		RecordId messageId2 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
 
 		List<ObjectRecord<K, HV>> messages = streamOps.read(StreamOffset.create(key, ReadOffset.from("0-0")),
 				(Class<HV>) value.getClass());
@@ -293,7 +292,7 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = hashValueFactory.instance();
 
-		EntryId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
+		RecordId messageId = streamOps.add(key, Collections.singletonMap(hashKey, value));
 		streamOps.createGroup(key, ReadOffset.from("0-0"), "my-group");
 
 		List<MapRecord<K, HK, HV>> messages = streamOps.read(Consumer.from("my-group", "my-consumer"),

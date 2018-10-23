@@ -20,7 +20,6 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -31,7 +30,6 @@ import java.util.function.Function;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
-import org.springframework.data.redis.connection.StreamRecords.MapBackedRecord;
 import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.lang.Nullable;
@@ -49,88 +47,109 @@ import org.springframework.util.StringUtils;
  */
 public interface RedisStreamCommands {
 
-	// TODO: remove when done
-	static List<StreamMessage<byte[], byte[]>> mapToStreamMessage(
-			List<? extends MapRecord<byte[], byte[], byte[]>> rawResult) {
-		List<StreamMessage<byte[], byte[]>> messages = new ArrayList<>();
-		for (MapRecord<byte[], byte[], byte[]> record : rawResult) {
-
-			messages.add(new StreamMessage(record.getStream(), record.getId().getValue(), record.getValue()));
-		}
-
-		return messages;
-	}
-
 	/**
-	 * Acknowledge one or more messages as processed.
+	 * Acknowledge one or more records, identified via their id, as processed.
 	 *
-	 * @param key the stream key.
+	 * @param key the {@literal key} the stream is stored at.
 	 * @param group name of the consumer group.
-	 * @param messageIds message Id's to acknowledge.
+	 * @param recordIds the String representation of the {@literal id's} of the records to acknowledge.
 	 * @return length of acknowledged messages. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
 	@Nullable
-	default Long xAck(byte[] key, String group, String... messageIds) {
-		return xAck(key, group, Arrays.stream(messageIds).map(EntryId::of).toArray(EntryId[]::new));
+	default Long xAck(byte[] key, String group, String... recordIds) {
+		return xAck(key, group, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
 	}
 
+	/**
+	 * Acknowledge one or more records, identified via their id, as processed.
+	 *
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param group name of the consumer group.
+	 * @param recordIds the {@literal id's} of the records to acknowledge.
+	 * @return length of acknowledged messages. {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
+	 */
 	@Nullable
-	Long xAck(byte[] key, String group, EntryId... entryIds);
+	Long xAck(byte[] key, String group, RecordId... recordIds);
 
 	/**
-	 * Append a message to the stream {@code key}.
+	 * Append a new record with the given {@link Map field/value pairs} as content to the stream stored at {@code key}.
 	 *
-	 * @param key the stream key.
-	 * @param body message body.
-	 * @return the message Id. {@literal null} when used in pipeline / transaction.
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param content the records content modeled as {@link Map field/value pairs}.
+	 * @return the server generated {@link RecordId id}. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	default EntryId xAdd(byte[] key, Map<byte[], byte[]> body) {
-		return xAdd(StreamRecords.newRecord().in(key).ofMap(body));
+	default RecordId xAdd(byte[] key, Map<byte[], byte[]> content) {
+		return xAdd(StreamRecords.newRecord().in(key).ofMap(content));
 	}
 
 	/**
-	 * Append the given {@link MapRecord record} to the stream at {@literal key}.
+	 * Append the given {@link MapRecord record} to the stream stored at {@link Record#getStream()}. <br />
+	 * If you prefer manual id assignment over server generated ones make sure to provide an id via
+	 * {@link Record#withId(RecordId)}.
 	 *
 	 * @param record the {@link MapRecord record} to append.
-	 * @return the {@link EntryId entry-id} after save.
+	 * @return the {@link RecordId id} after save. {@literal null} when used in pipeline / transaction.
 	 */
-	EntryId xAdd(MapRecord<byte[], byte[], byte[]> record);
+	RecordId xAdd(MapRecord<byte[], byte[], byte[]> record);
 
 	/**
-	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
-	 * number of IDs passed in case certain IDs do not exist.
+	 * Removes the records with the given id's from the stream. Returns the number of items deleted, that may be different
+	 * from the number of id's passed in case certain id's do not exist.
 	 *
-	 * @param key the stream key.
-	 * @param messageIds stream message Id's.
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param recordIds the id's of the records to remove.
 	 * @return number of removed entries. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	@Nullable
-	default Long xDel(byte[] key, String... messageIds) {
-		return xDel(key, Arrays.stream(messageIds).map(EntryId::of).toArray(EntryId[]::new));
+	default Long xDel(byte[] key, String... recordIds) {
+		return xDel(key, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
 	}
 
-	Long xDel(byte[] key, EntryId... entryIds);
+	/**
+	 * Removes the records with the given id's from the stream. Returns the number of items deleted, that may be different
+	 * from the number of id's passed in case certain id's do not exist.
+	 *
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param recordIds the id's of the records to remove.
+	 * @return number of removed entries. {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
+	 */
+	Long xDel(byte[] key, RecordId... recordIds);
 
 	/**
 	 * Create a consumer group.
 	 *
-	 * @param key the stream key.
-	 * @param readOffset the offset to start with.
-	 * @param group name of the consumer group.
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param groupName name of the consumer group to create.
+	 * @param readOffset the offset to start at.
 	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
 	 */
 	@Nullable
-	String xGroupCreate(byte[] key, ReadOffset readOffset, String group);
+	String xGroupCreate(byte[] key, String groupName, ReadOffset readOffset);
 
 	/**
 	 * Delete a consumer from a consumer group.
 	 *
-	 * @param key the stream key.
-	 * @param consumer consumer identified by group name and consumer key.
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param groupName the name of the group to remove the consumer from.
+	 * @param consumerName the name of the consumer to remove from the group.
+	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
+	 */
+	@Nullable
+	default Boolean xGroupDelConsumer(byte[] key, String groupName, String consumerName) {
+		return xGroupDelConsumer(key, Consumer.from(groupName, consumerName));
+	}
+
+	/**
+	 * Delete a consumer from a consumer group.
+	 *
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param consumer consumer identified by group name and consumer name.
 	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
 	 */
 	@Nullable
@@ -139,17 +158,17 @@ public interface RedisStreamCommands {
 	/**
 	 * Destroy a consumer group.
 	 *
-	 * @param key the stream key.
-	 * @param group name of the consumer group.
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param groupName name of the consumer group.
 	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
 	 */
 	@Nullable
-	Boolean xGroupDestroy(byte[] key, String group);
+	Boolean xGroupDestroy(byte[] key, String groupName);
 
 	/**
 	 * Get the length of a stream.
 	 *
-	 * @param key the stream key.
+	 * @param key the {@literal key} the stream is stored at.
 	 * @return length of the stream. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xlen">Redis Documentation: XLEN</a>
 	 */
@@ -157,11 +176,13 @@ public interface RedisStreamCommands {
 	Long xLen(byte[] key);
 
 	/**
-	 * Read messages from a stream within a specific {@link Range}.
+	 * Retrieve all {@link ByteMapRecord records} within a specific {@link Range} from the stream stored at
+	 * {@literal key}. <br />
+	 * Use {@link Range#unbounded()} to read from the minimum and the maximum ID possible.
 	 *
-	 * @param key the stream key.
+	 * @param key the {@literal key} the stream is stored at.
 	 * @param range must not be {@literal null}.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
+	 * @return {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
@@ -170,34 +191,25 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit}.
+	 * Retrieve a {@link Limit limited number} of {@link ByteMapRecord records} within a specific {@link Range} from the
+	 * stream stored at {@literal key}. <br />
+	 * Use {@link Range#unbounded()} to read from the minimum and the maximum ID possible. <br />
+	 * Use {@link Limit#unlimited()} to read all records.
 	 *
-	 * @param key the stream key.
+	 * @param key the {@literal key} the stream is stored at.
 	 * @param range must not be {@literal null}.
 	 * @param limit must not be {@literal null}.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
+	 * @return {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	@Nullable
 	List<ByteMapRecord> xRange(byte[] key, Range<String> range, Limit limit);
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
-	 *
-	 * @param stream the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
-	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
-	 */
-	@Nullable
-	default List<ByteMapRecord> xRead(StreamOffset<byte[]> stream) {
-		return xRead(StreamReadOptions.empty(), new StreamOffset[] { stream });
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param streams the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
+	 * @return {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
@@ -206,31 +218,18 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param readOptions read arguments.
 	 * @param streams the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
+	 * @return {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
 	List<ByteMapRecord> xRead(StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
-	 *
-	 * @param consumer consumer/group.
-	 * @param stream the streams to read from.
-	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
-	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
-	 */
-	@Nullable
-	default List<ByteMapRecord> xReadGroup(Consumer consumer, StreamOffset<byte[]> stream) {
-		return xReadGroup(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param streams the streams to read from.
@@ -243,7 +242,7 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param readOptions read arguments.
@@ -255,7 +254,7 @@ public interface RedisStreamCommands {
 	List<ByteMapRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions, StreamOffset<byte[]>... streams);
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} in reverse order.
+	 * Read records from a stream within a specific {@link Range} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -268,7 +267,7 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -368,7 +367,7 @@ public interface RedisStreamCommands {
 			return new ReadOffset(offset);
 		}
 
-		public static ReadOffset from(EntryId offset) {
+		public static ReadOffset from(RecordId offset) {
 
 			if (offset.shouldBeAutoGenerated()) {
 				return latest();
@@ -516,7 +515,7 @@ public interface RedisStreamCommands {
 	 * @see <a href="https://redis.io/topics/streams-intro#entry-ids">Redis Documentation - Entriy ID</a>
 	 */
 	@EqualsAndHashCode
-	class EntryId {
+	class RecordId {
 
 		private static final String GENERATE_ID = "*";
 		private static final String DELIMINATOR = "-";
@@ -525,7 +524,7 @@ public interface RedisStreamCommands {
 		 * Auto-generation of IDs by the server is almost always what you want so we've got this instance here shortcutting
 		 * computation.
 		 */
-		private static final EntryId AUTOGENERATED = new EntryId(GENERATE_ID) {
+		private static final RecordId AUTOGENERATED = new RecordId(GENERATE_ID) {
 
 			@Override
 			public Long getSequence() {
@@ -550,20 +549,20 @@ public interface RedisStreamCommands {
 		 *
 		 * @param raw
 		 */
-		private EntryId(String raw) {
+		private RecordId(String raw) {
 			this.raw = raw;
 		}
 
 		/**
-		 * Obtain an instance of {@link EntryId} using the provided String formatted as
+		 * Obtain an instance of {@link RecordId} using the provided String formatted as
 		 * {@literal <millisecondsTime>-<sequenceNumber>}. <br />
 		 * For server auto generated {@literal entry-id} on insert pass in {@literal null} or {@literal *}. Event better,
 		 * just use {@link #autoGenerate()}.
 		 *
 		 * @param value can be {@literal null}.
-		 * @return new instance of {@link EntryId} if no autogenerated one requested.
+		 * @return new instance of {@link RecordId} if no autogenerated one requested.
 		 */
-		public static EntryId of(@Nullable String value) {
+		public static RecordId of(@Nullable String value) {
 
 			if (value == null || GENERATE_ID.equals(value)) {
 				return autoGenerate();
@@ -571,29 +570,29 @@ public interface RedisStreamCommands {
 
 			Assert.isTrue(value.contains(DELIMINATOR),
 					"Invalid id format. Please use the 'millisecondsTime-sequenceNumber' format.");
-			return new EntryId(value);
+			return new RecordId(value);
 		}
 
 		/**
-		 * Create a new instance of {@link EntryId} using the provided String formatted as
+		 * Create a new instance of {@link RecordId} using the provided String formatted as
 		 * {@literal <millisecondsTime>-<sequenceNumber>}. <br />
 		 * For server auto generated {@literal entry-id} on insert use {@link #autoGenerate()}.
 		 *
 		 * @param millisecondsTime
 		 * @param sequenceNumber
-		 * @return new instance of {@link EntryId}.
+		 * @return new instance of {@link RecordId}.
 		 */
-		public static EntryId of(long millisecondsTime, long sequenceNumber) {
+		public static RecordId of(long millisecondsTime, long sequenceNumber) {
 			return of(millisecondsTime + DELIMINATOR + sequenceNumber);
 		}
 
 		/**
-		 * Obtain the {@link EntryId} signalling the server to auto generate an {@literal entry-id} on insert
+		 * Obtain the {@link RecordId} signalling the server to auto generate an {@literal entry-id} on insert
 		 * ({@code XADD}).
 		 *
-		 * @return {@link EntryId} instance signalling {@link #shouldBeAutoGenerated()}.
+		 * @return {@link RecordId} instance signalling {@link #shouldBeAutoGenerated()}.
 		 */
-		public static EntryId autoGenerate() {
+		public static RecordId autoGenerate() {
 			return AUTOGENERATED;
 		}
 
@@ -644,7 +643,7 @@ public interface RedisStreamCommands {
 	}
 
 	/**
-	 * A single entry in the stream consisting of the {@link EntryId entry-id} and the actual entry-value (typically a
+	 * A single entry in the stream consisting of the {@link RecordId entry-id} and the actual entry-value (typically a
 	 * collection of {@link MapRecord field/value pairs}).
 	 *
 	 * @param <V> the type backing the {@link Record}.
@@ -654,7 +653,7 @@ public interface RedisStreamCommands {
 	interface Record<S, V> {
 
 		/**
-		 * The id of the streak (aka key).
+		 * The id of the stream (aka the {@literal key} in Redis).
 		 *
 		 * @return can be {@literal null}.
 		 */
@@ -666,7 +665,7 @@ public interface RedisStreamCommands {
 		 *
 		 * @return never {@literal null}.
 		 */
-		EntryId getId();
+		RecordId getId();
 
 		/**
 		 * @return the actual content. Never {@literal null}.
@@ -675,6 +674,8 @@ public interface RedisStreamCommands {
 
 		/**
 		 * Create a new {@link MapRecord} instance backed by the given {@link Map} holding {@literal field/value} pairs.
+		 * <br />
+		 * You may want to use the builders available via {@link StreamRecords}.
 		 *
 		 * @param map the raw map.
 		 * @param <K> the key type of the given {@link Map}.
@@ -689,7 +690,8 @@ public interface RedisStreamCommands {
 
 		/**
 		 * Create a new {@link ObjectRecord} instance backed by the given {@literal value}. The value may be a simple type,
-		 * like {@link String} or a complex one.
+		 * like {@link String} or a complex one. <br />
+		 * You may want to use the builders available via {@link StreamRecords}.
 		 *
 		 * @param value the value to persist.
 		 * @param <V> the type of the backing value.
@@ -702,13 +704,20 @@ public interface RedisStreamCommands {
 		}
 
 		/**
-		 * Create a new instance of {@link Record} with the given {@link EntryId}.
+		 * Create a new instance of {@link Record} with the given {@link RecordId}.
 		 *
 		 * @param id must not be {@literal null}.
 		 * @return new instance of {@link Record}.
 		 */
-		Record<S, V> withId(EntryId id);
+		Record<S, V> withId(RecordId id);
 
+		/**
+		 * Create a new instance of {@link Record} with the given {@literal key} to store the record at.
+		 *
+		 * @param key the Redis key identifying the stream.
+		 * @param <S1>
+		 * @return new instance of {@link Record}.
+		 */
 		<S1> Record<S1, V> withStreamKey(S1 key);
 	}
 
@@ -722,16 +731,20 @@ public interface RedisStreamCommands {
 
 		/*
 		 * (non-Javadoc)
-		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.RecordId)
 		 */
 		@Override
-		ObjectRecord<S, V> withId(EntryId id);
+		ObjectRecord<S, V> withId(RecordId id);
 
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withStreamKey(java.lang.Object)
+		 */
 		<S1> ObjectRecord<S1, V> withStreamKey(S1 key);
 
 		/**
 		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
-		 * {@link EntryId id} is carried over to the new instance.
+		 * {@link RecordId id} is carried over to the new instance.
 		 *
 		 * @param mapper must not be {@literal null}.
 		 * @param <HK> the key type of the resulting {@link MapRecord}.
@@ -739,7 +752,7 @@ public interface RedisStreamCommands {
 		 * @return new instance of {@link MapRecord}.
 		 */
 		default <HK, HV> MapRecord<S, HK, HV> toMapRecord(HashMapper<? super V, HK, HV> mapper) {
-			return Record.<S, HK, HV> of(mapper.toHash(getValue())).withId(getId());
+			return Record.<S, HK, HV> of(mapper.toHash(getValue())).withId(getId()).withStreamKey(getStream());
 		}
 	}
 
@@ -753,11 +766,15 @@ public interface RedisStreamCommands {
 
 		/*
 		 * (non-Javadoc)
-		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.RecordId)
 		 */
 		@Override
-		MapRecord<S, K, V> withId(EntryId id);
+		MapRecord<S, K, V> withId(RecordId id);
 
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withStreamKey(java.lang.Object)
+		 */
 		<S1> MapRecord<S1, K, V> withStreamKey(S1 key);
 
 		/**
@@ -778,17 +795,34 @@ public interface RedisStreamCommands {
 				mapped.put(mappedPair.getKey(), mappedPair.getValue());
 			});
 
-			return new MapBackedRecord<>(getStream(), getId(), mapped);
+			return StreamRecords.newRecord().in(getStream()).withId(getId()).ofMap(mapped);
 		}
 
 		default <S1, HK, HV> MapRecord<S1, HK, HV> map(Function<MapRecord<S, K, V>, MapRecord<S1, HK, HV>> mapFunction) {
 			return mapFunction.apply(this);
 		}
 
-		default ByteMapRecord serialize(RedisSerializer serializer) {
+		/**
+		 * Serialize {@link #getStream() key} and {@link #getValue() field/value pairs} with the given
+		 * {@link RedisSerializer}. An already assigned {@link RecordId id} is carried over to the new instance.
+		 *
+		 * @param serializer can be {@literal null} if the {@link Record} only holds binary data.
+		 * @return new {@link ByteMapRecord} holding the serialized values.
+		 */
+		default ByteMapRecord serialize(@Nullable RedisSerializer serializer) {
 			return serialize(serializer, serializer, serializer);
 		}
 
+		/**
+		 * Serialize {@link #getStream() key} with the {@literal streamSerializer}, field names with the
+		 * {@literal fieldSerializer} and values with the {@literal valueSerializer}. An already assigned {@link RecordId
+		 * id} is carried over to the new instance.
+		 * 
+		 * @param streamSerializer can be {@literal null} if the key is binary.
+		 * @param fieldSerializer can be {@literal null} if the fields are binary.
+		 * @param valueSerializer can be {@literal null} if the values are binary.
+		 * @return new {@link ByteMapRecord} holding the serialized values.
+		 */
 		default ByteMapRecord serialize(@Nullable RedisSerializer<? super S> streamSerializer,
 				@Nullable RedisSerializer<? super K> fieldSerializer, @Nullable RedisSerializer<? super V> valueSerializer) {
 
@@ -797,33 +831,62 @@ public interface RedisStreamCommands {
 							valueSerializer != null ? valueSerializer.serialize(it.getValue()) : (byte[]) it.getValue())
 					.entrySet().iterator().next());
 
-			return StreamRecords.newRecord()
-					.in(streamSerializer != null ? streamSerializer.serialize(getStream()) : (byte[]) getStream())
+			return StreamRecords.newRecord() //
+					.in(streamSerializer != null ? streamSerializer.serialize(getStream()) : (byte[]) getStream()) //
+					.withId(getId()) //
 					.ofBytes(x.getValue());
 		}
 
 		/**
 		 * Apply the given {@link HashMapper} to the backing value to create a new {@link MapRecord}. An already assigned
-		 * {@link EntryId id} is carried over to the new instance.
+		 * {@link RecordId id} is carried over to the new instance.
 		 *
 		 * @param mapper must not be {@literal null}.
 		 * @param <OV> type of the value backing the {@link ObjectRecord}.
 		 * @return new instance of {@link ObjectRecord}.
 		 */
-		default <OV> ObjectRecord<S, OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
+		default <OV> ObjectRecord<S, OV> toObjectRecord(HashMapper<? super OV, ? super K, ? super V> mapper) {
 			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId()).withStreamKey(getStream());
 		}
 	}
 
+	/**
+	 * A {@link Record} within the stream backed by a collection of binary {@literal field/value} paris.
+	 *
+	 * @author Christoph Strobl
+	 */
 	interface ByteMapRecord extends MapRecord<byte[], byte[], byte[]> {
 
-		default <T> MapRecord<T, T, T> deserialize(RedisSerializer<T> serializer) {
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.RecordId)
+		 */
+		@Override
+		ByteMapRecord withId(RecordId id);
 
-			return mapEntries(
-					it -> Collections.singletonMap(serializer.deserialize(it.getKey()), serializer.deserialize(it.getValue()))
-							.entrySet().iterator().next()).withStreamKey(serializer.deserialize(getStream()));
+		ByteMapRecord withStreamKey(byte[] key);
+
+		/**
+		 * Deserialize {@link #getStream() key} and {@link #getValue() field/value pairs} with the given
+		 * {@link RedisSerializer}. An already assigned {@link RecordId id} is carried over to the new instance.
+		 *
+		 * @param serializer can be {@literal null} if the {@link Record} only holds binary data.
+		 * @return new {@link MapRecord} holding the deserialized values.
+		 */
+		default <T> MapRecord<T, T, T> deserialize(@Nullable RedisSerializer<T> serializer) {
+			return deserialize(serializer, serializer, serializer);
 		}
 
+		/**
+		 * Deserialize {@link #getStream() key} with the {@literal streamSerializer}, field names with the
+		 * {@literal fieldSerializer} and values with the {@literal valueSerializer}. An already assigned {@link RecordId
+		 * id} is carried over to the new instance.
+		 * 
+		 * @param streamSerializer can be {@literal null} if the key suites already the target format.
+		 * @param fieldSerializer can be {@literal null} if the fields suite already the target format.
+		 * @param valueSerializer can be {@literal null} if the values suite already the target format.
+		 * @return new {@link MapRecord} holding the deserialized values.
+		 */
 		default <K, HK, HV> MapRecord<K, HK, HV> deserialize(@Nullable RedisSerializer<? extends K> streamSerializer,
 				@Nullable RedisSerializer<? extends HK> fieldSerializer,
 				@Nullable RedisSerializer<? extends HV> valueSerializer) {
@@ -835,23 +898,39 @@ public interface RedisStreamCommands {
 							.withStreamKey(streamSerializer != null ? streamSerializer.deserialize(getStream()) : (K) getStream());
 		}
 
-		@Override
-		ByteMapRecord withId(EntryId id);
-
-		ByteMapRecord withStreamKey(byte[] key);
-
+		/**
+		 * Turn a binary {@link MapRecord} into a {@link ByteMapRecord}.
+		 *
+		 * @param source must not be {@literal null}.
+		 * @return new instance of {@link ByteMapRecord}.
+		 */
 		static ByteMapRecord of(MapRecord<byte[], byte[], byte[]> source) {
 			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBytes(source.getValue());
 		}
 	}
 
+	/**
+	 * A {@link Record} within the stream backed by a collection of {@link String} {@literal field/value} paris.
+	 *
+	 * @author Christoph Strobl
+	 */
 	interface StringMapRecord extends MapRecord<String, String, String> {
 
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.RecordId)
+		 */
 		@Override
-		StringMapRecord withId(EntryId id);
+		StringMapRecord withId(RecordId id);
 
 		StringMapRecord withStreamKey(String key);
 
+		/**
+		 * Turn a {@link MapRecord} of {@link String strings} into a {@link StringMapRecord}.
+		 *
+		 * @param source must not be {@literal null}.
+		 * @return new instance of {@link StringMapRecord}.
+		 */
 		static StringMapRecord of(MapRecord<String, String, String> source) {
 			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofStrings(source.getValue());
 		}

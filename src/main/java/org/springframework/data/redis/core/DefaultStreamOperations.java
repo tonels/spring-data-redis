@@ -27,13 +27,11 @@ import java.util.stream.Collectors;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -80,7 +78,7 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#add(java.lang.Object, java.util.Map)
 	 */
 	@Override
-	public EntryId add(MapRecord<K, HK, HV> record) {
+	public RecordId add(MapRecord<K, HK, HV> record) {
 
 		ByteMapRecord binaryRecord = record.serialize(keySerializer(), hashKeySerializer(), hashValueSerializer());
 
@@ -106,7 +104,7 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	public String createGroup(K key, ReadOffset readOffset, String group) {
 
 		byte[] rawKey = rawKey(key);
-		return execute(connection -> connection.xGroupCreate(rawKey, readOffset, group), true);
+		return execute(connection -> connection.xGroupCreate(rawKey, group, readOffset), true);
 	}
 
 	/*
@@ -181,8 +179,7 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions,
-			StreamOffset<K>... streams) {
+	public List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
 		return execute(new RecordDeserializingRedisCallback<K, HK, HV>() {
 
@@ -231,20 +228,19 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 					HK key = (HK) "payload";
 					HV value = (HV) object;
 
-					if(!template.isEnableDefaultSerializer()) {
-						if(template.getHashKeySerializer() == null) {
+					if (!template.isEnableDefaultSerializer()) {
+						if (template.getHashKeySerializer() == null) {
 							key = (HK) key.toString().getBytes(StandardCharsets.UTF_8);
 						}
-						if(template.getHashValueSerializer() == null) {
+						if (template.getHashValueSerializer() == null) {
 							value = (HV) serializeHashValueIfRequires((HV) object);
 						}
 					}
 
-
 					return Collections.singletonMap(key, value);
 
-//					return (Map<HK, HV>) Collections.singletonMap("payload".getBytes(StandardCharsets.UTF_8),
-//							serializeHashValueIfRequires((HV) object));
+					// return (Map<HK, HV>) Collections.singletonMap("payload".getBytes(StandardCharsets.UTF_8),
+					// serializeHashValueIfRequires((HV) object));
 				}
 
 				@Override
@@ -283,7 +279,6 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 		return (HashMapper<V, HK, HV>) mapper;
 	}
 
-
 	protected byte[] serializeHashKeyIfRequired(HK key) {
 
 		return hashKeySerializerPresent() ? serialize(key, hashKeySerializer())
@@ -312,7 +307,8 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	}
 
 	protected K deserializeKey(byte[] bytes, Class<K> targetType) {
-		return keySerializerPresent() ? (K)keySerializer().deserialize(bytes) : conversionService.convert(bytes, targetType);
+		return keySerializerPresent() ? (K) keySerializer().deserialize(bytes)
+				: conversionService.convert(bytes, targetType);
 	}
 
 	protected HK deserializeHashKey(byte[] bytes, Class<HK> targetType) {
@@ -401,32 +397,6 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 		return Arrays.stream(streams) //
 				.map(it -> StreamOffset.create(rawKey(it.getKey()), it.getOffset())) //
 				.toArray(it -> new StreamOffset[it]);
-	}
-
-	abstract class StreamMessagesDeserializingRedisCallback<K, HK, HV>
-			implements RedisCallback<List<StreamMessage<HK, HV>>> {
-
-		public final List<StreamMessage<HK, HV>> doInRedis(RedisConnection connection) {
-
-			List<StreamMessage<byte[], byte[]>> streamMessages = inRedis(connection);
-
-			if (streamMessages == null) {
-				return null;
-			}
-
-			List<StreamMessage<HK, HV>> result = new ArrayList<>(streamMessages.size());
-
-			for (StreamMessage<byte[], byte[]> streamMessage : streamMessages) {
-
-				result.add(new StreamMessage((K) deserializeKey(streamMessage.getStream()), streamMessage.getId(),
-						(Map) deserializeBody(streamMessage.getBody())));
-			}
-
-			return result;
-		}
-
-		@Nullable
-		abstract List<StreamMessage<byte[], byte[]>> inRedis(RedisConnection connection);
 	}
 
 	abstract class RecordDeserializingRedisCallback<K, HK, HV> implements RedisCallback<List<MapRecord<K, HK, HV>>> {

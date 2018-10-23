@@ -27,7 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.redis.connection.RedisGeoCommands.DistanceUnit;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 
 /**
  * @author Jennifer Hickey
@@ -1763,7 +1763,7 @@ public class DefaultStringRedisConnectionPipelineTxTests extends DefaultStringRe
 	@Override // DATAREDIS-864
 	public void xAddShouldAppendRecordCorrectly() {
 
-		doReturn(Arrays.asList(Arrays.asList(EntryId.of("1-1")))).when(nativeConnection).closePipeline();
+		doReturn(Arrays.asList(Arrays.asList(RecordId.of("1-1")))).when(nativeConnection).closePipeline();
 		super.xAddShouldAppendRecordCorrectly();
 	}
 

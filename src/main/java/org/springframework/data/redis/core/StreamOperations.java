@@ -22,11 +22,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.Record;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -38,47 +38,48 @@ import org.springframework.lang.Nullable;
  * Redis stream specific operations.
  *
  * @author Mark Paluch
+ * @author Christoph Strobl
  * @since 2.2
  */
 public interface StreamOperations<K, HK, HV> {
 
 	/**
-	 * Acknowledge one or more messages as processed.
+	 * Acknowledge one or more records as processed.
 	 *
 	 * @param key the stream key.
 	 * @param group name of the consumer group.
-	 * @param messageIds message Id's to acknowledge.
-	 * @return length of acknowledged messages. {@literal null} when used in pipeline / transaction.
+	 * @param recordIds record id's to acknowledge.
+	 * @return length of acknowledged records. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
 	@Nullable
-	Long acknowledge(K key, String group, String... messageIds);
+	Long acknowledge(K key, String group, String... recordIds);
 
-	default Long acknowledge(K key, String group, EntryId... messageIds){
-		return acknowledge(key, group, Arrays.stream(messageIds).map(EntryId::getValue).toArray(String[]::new));
+	default Long acknowledge(K key, String group, RecordId... recordIds) {
+		return acknowledge(key, group, Arrays.stream(recordIds).map(RecordId::getValue).toArray(String[]::new));
 	}
 
-	default Long acknowledge(String group, Record<K,?> record) {
+	default Long acknowledge(String group, Record<K, ?> record) {
 		return acknowledge(record.getStream(), group, record.getId());
 	}
 
 	/**
-	 * Append a message to the stream {@code key}.
+	 * Append a record to the stream {@code key}.
 	 *
 	 * @param key the stream key.
-	 * @param body message body.
-	 * @return the message Id. {@literal null} when used in pipeline / transaction.
+	 * @param content record content as Map.
+	 * @return the record Id. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	default EntryId add(K key, Map<HK, HV> body) {
-		return add(StreamRecords.newRecord().in(key).ofMap(body));
+	default RecordId add(K key, Map<HK, HV> content) {
+		return add(StreamRecords.newRecord().in(key).ofMap(content));
 	}
 
-	EntryId add(MapRecord<K, HK, HV> record);
+	RecordId add(MapRecord<K, HK, HV> record);
 
-	default <V> EntryId add(Record<K, V> value) {
-		return add(objectToEntry(value));
+	default <V> RecordId add(Record<K, V> value) {
+		return add(toMapRecord(value));
 	}
 
 	/**
@@ -86,12 +87,12 @@ public interface StreamOperations<K, HK, HV> {
 	 * number of IDs passed in case certain IDs do not exist.
 	 *
 	 * @param key the stream key.
-	 * @param messageIds stream message Id's.
+	 * @param recordIds stream record id's.
 	 * @return number of removed entries. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	@Nullable
-	Long delete(K key, String... messageIds);
+	Long delete(K key, String... recordIds);
 
 	/**
 	 * Create a consumer group.
@@ -135,7 +136,7 @@ public interface StreamOperations<K, HK, HV> {
 	Long size(K key);
 
 	/**
-	 * Read messages from a stream within a specific {@link Range}.
+	 * Read records from a stream within a specific {@link Range}.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -148,7 +149,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit}.
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit}.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -160,11 +161,11 @@ public interface StreamOperations<K, HK, HV> {
 	List<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
 	default <V> List<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
-		return range(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+		return range(key, range).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param stream the streams to read from.
 	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
@@ -180,7 +181,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream. {@literal null} when used in pipeline / transaction.
@@ -192,7 +193,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param readOptions read arguments.
 	 * @param stream the streams to read from.
@@ -205,7 +206,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param readOptions read arguments.
 	 * @param streams the streams to read from.
@@ -215,12 +216,13 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
-	default <V> List<ObjectRecord<K, V>> read(StreamReadOptions readOptions, Class<V> targetType, StreamOffset<K>... streams) {
-		return read(readOptions, streams).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	default <V> List<ObjectRecord<K, V>> read(StreamReadOptions readOptions, Class<V> targetType,
+			StreamOffset<K>... streams) {
+		return read(readOptions, streams).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param stream the streams to read from.
@@ -233,7 +235,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param streams the streams to read from.
@@ -246,7 +248,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param readOptions read arguments.
@@ -260,7 +262,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param readOptions read arguments.
@@ -271,12 +273,14 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
-	default <V> List<ObjectRecord<K, V>> read(Consumer consumer, StreamReadOptions readOptions, Class<V> targetType, StreamOffset<K>... streams) {
-		return read(consumer, readOptions, streams).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	default <V> List<ObjectRecord<K, V>> read(Consumer consumer, StreamReadOptions readOptions, Class<V> targetType,
+			StreamOffset<K>... streams) {
+		return read(consumer, readOptions, streams).stream().map(it -> toObjectRecord(it, targetType))
+				.collect(Collectors.toList());
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} in reverse order.
+	 * Read records from a stream within a specific {@link Range} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -289,7 +293,7 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -301,7 +305,7 @@ public interface StreamOperations<K, HK, HV> {
 	List<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
 
 	default <V> List<ObjectRecord<K, V>> reverseRange(K key, Range<String> range, Class<V> targetType) {
-		return reverseRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+		return reverseRange(key, range).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
 	}
 
 	/**
@@ -315,15 +319,28 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	Long trim(K key, long count);
 
+	/**
+	 * Get the {@link HashMapper} for a specific type.
+	 *
+	 * @param targetType must not be {@literal null}.
+	 * @param <V>
+	 * @return the {@link HashMapper} suitable for a given type;
+	 */
 	<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
 
-	default <V> MapRecord<K, HK, HV> objectToEntry(Record<K, V> value) {
+	/**
+	 * App
+	 * 
+	 * @param value
+	 * @param <V>
+	 * @return
+	 */
+	default <V> MapRecord<K, HK, HV> toMapRecord(Record<K, V> value) {
 
 		if (value instanceof ObjectRecord) {
 
 			ObjectRecord entry = ((ObjectRecord) value);
-			return Record.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue()))
-					.withId(entry.getId()).withStreamKey(entry.getStream());
+			return entry.toMapRecord(getHashMapper(entry.getValue().getClass()));
 		}
 
 		if (value instanceof MapRecord) {
@@ -333,7 +350,7 @@ public interface StreamOperations<K, HK, HV> {
 		return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value)).withStreamKey(value.getStream());
 	}
 
-	default <V> ObjectRecord<K, V> entryToObject(MapRecord<K, HK, HV> entry, Class<V> targetType) {
+	default <V> ObjectRecord<K, V> toObjectRecord(MapRecord<K, HK, HV> entry, Class<V> targetType) {
 		return entry.toObjectRecord(getHashMapper(targetType));
 	}
 }

@@ -20,10 +20,9 @@ import java.util.Map;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
 import org.springframework.lang.Nullable;
@@ -55,7 +54,7 @@ public interface BoundStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	EntryId add(Map<HK, HV> body);
+	RecordId add(Map<HK, HV> body);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the

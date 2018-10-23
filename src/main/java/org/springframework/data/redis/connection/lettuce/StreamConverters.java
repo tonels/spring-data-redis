@@ -23,9 +23,6 @@ import java.util.List;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.StreamRecords;
 import org.springframework.data.redis.connection.convert.ListConverter;
@@ -57,16 +54,6 @@ class StreamConverters {
 	}
 
 	/**
-	 * Convert Lettuce's {@link List} of {@link StreamMessage} to {@link RedisStreamCommands.StreamMessage}s.
-	 *
-	 * @param source must not be {@literal null}.
-	 * @return the converted {@link List}.
-	 */
-	static <K, V> List<RedisStreamCommands.StreamMessage<K, V>> toStreamMessages(List<StreamMessage<K, V>> source) {
-		return (List) STREAM_LIST_CONVERTER.convert((List) source);
-	}
-
-	/**
 	 * Convert {@link StreamReadOptions} to Lettuce's {@link XReadArgs}.
 	 *
 	 * @param readOptions must not be {@literal null}.
@@ -74,22 +61,6 @@ class StreamConverters {
 	 */
 	static XReadArgs toReadArgs(StreamReadOptions readOptions) {
 		return StreamReadOptionsToXReadArgsConverter.INSTANCE.convert(readOptions);
-	}
-
-	/**
-	 * @return {@link Converter} to convert Lettuce {@link StreamMessage} into
-	 *         {@link org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage}.
-	 */
-	public static <K, V> Converter<StreamMessage<K, V>, RedisStreamCommands.StreamMessage<K, V>> streamMessageConverter() {
-		return (Converter) StreamMessageConverter.INSTANCE;
-	}
-
-	/**
-	 * @return {@link Converter} to convert a{@link List} of Lettuce {@link StreamMessage}s into a {@link List} of
-	 *         {@link org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage}.
-	 */
-	public static <K, V> Converter<List<StreamMessage<K, V>>, List<RedisStreamCommands.StreamMessage<K, V>>> streamMessageListConverter() {
-		return (Converter) STREAM_LIST_CONVERTER;
 	}
 
 	/**
@@ -107,14 +78,6 @@ class StreamConverters {
 		public RedisStreamCommands.StreamMessage<Object, Object> convert(StreamMessage<Object, Object> source) {
 			return new RedisStreamCommands.StreamMessage<>(source.getStream(), source.getId(), source.getBody());
 		}
-	}
-
-	public static <S, K, V> Converter<List<StreamMessage<K, V>>, List<MapRecord<S, K, V>>> recordListConverter() {
-		return new ListConverter<>(recordConverter());
-	}
-
-	public static <S, K, V> Converter<StreamMessage<K, V>, MapRecord<S, K, V>> recordConverter() {
-		return (it) -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofMap(it.getBody());
 	}
 
 	public static Converter<StreamMessage<byte[], byte[]>, ByteMapRecord> byteRecordConverter() {

@@ -18,7 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Record;
@@ -75,7 +75,7 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java(), null);
 
-		EntryId id = ops.xAdd("foo", Record.of(Collections.singletonMap("field", "value")));
+		RecordId id = ops.xAdd("foo", Record.of(Collections.singletonMap("field", "value")));
 		List<MapRecord<String, String, Object>> range = ops.xRange("foo", Range.unbounded());
 
 		range.forEach(it -> System.out.println(it.getId() + ": " + it.getValue()));
@@ -96,7 +96,7 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java(), new Jackson2HashMapper(false));
 
-		EntryId id = ops.xAdd("key", o);
+		RecordId id = ops.xAdd("key", o);
 		List<ObjectRecord<String, SimpleObject>> list = ops.xRange("key", Range.unbounded(), SimpleObject.class);
 
 		list.forEach(System.out::println);
@@ -114,7 +114,7 @@ public class ApiSpike {
 		StreamOperationsImpl<String, String, Object> ops = new StreamOperationsImpl<>(imp, RedisSerializer.string(),
 				RedisSerializer.string(), RedisSerializer.java(), null);
 
-		EntryId id = ops.xAdd("key", o);
+		RecordId id = ops.xAdd("key", o);
 
 		List<MapRecord<String, String, Object>> list = ops.xRange("key", Range.unbounded());
 
@@ -139,7 +139,7 @@ public class ApiSpike {
 
 	interface RedisStreamCommands {
 
-		EntryId xAdd(byte[] key, MapRecord<byte[], byte[], byte[]> entry);
+		RecordId xAdd(byte[] key, MapRecord<byte[], byte[], byte[]> entry);
 
 		List<MapRecord<byte[], byte[], byte[]>> xRange(byte[] key, Range<String> range);
 
@@ -154,8 +154,8 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(byte[] key, MapRecord<byte[],byte[], byte[]> entry) {
-			return org.springframework.data.redis.connection.RedisStreamCommands.EntryId
+		public RecordId xAdd(byte[] key, MapRecord<byte[],byte[], byte[]> entry) {
+			return RecordId
 					.of(connection.getConnection().xadd(key, entry.getValue()));
 		}
 
@@ -166,22 +166,22 @@ public class ApiSpike {
 					io.lettuce.core.Range.unbounded(), Limit.unlimited());
 			return raw.stream()
 					.map(it -> StreamRecords.rawBytes(it.getBody())
-							.withId(org.springframework.data.redis.connection.RedisStreamCommands.EntryId.of(it.getId())))
+							.withId(RecordId.of(it.getId())))
 					.collect(Collectors.toList());
 		}
 	}
 
 	interface StreamOperations<K, HK, HV> {
 
-		default EntryId xAdd(K key, Object value) {
+		default RecordId xAdd(K key, Object value) {
 			return xAdd(key, Record.of(value));
 		}
 
-		default EntryId xAdd(K key, Record<K,?> value) {
+		default RecordId xAdd(K key, Record<K,?> value) {
 			return xAdd(key, objectToEntry(value));
 		}
 
-		EntryId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry);
+		RecordId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry);
 
 		List<MapRecord<K, HK, HV>> xRange(K key, Range<String> range);
 
@@ -247,7 +247,7 @@ public class ApiSpike {
 		}
 
 		@Override
-		public EntryId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry) {
+		public RecordId xAdd(K key, MapRecord<K, ? extends HK, ? extends HV> entry) {
 			return commands.xAdd(serializeKeyIfRequired(key), entry.mapEntries(this::mapToBinary).withStreamKey(serializeKeyIfRequired(key)));
 		}
 

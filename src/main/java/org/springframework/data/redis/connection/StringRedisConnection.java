@@ -1960,13 +1960,13 @@ public interface StringRedisConnection extends RedisConnection {
 	// Methods dealing with Redis Streams
 	// -------------------------------------------------------------------------
 
-	static EntryId[] entryIds(String... entryIds) {
+	static RecordId[] entryIds(String... entryIds) {
 
 		if(entryIds.length == 1) {
-			return new EntryId[]{EntryId.of(entryIds[0])};
+			return new RecordId[]{RecordId.of(entryIds[0])};
 		}
 
-		return Arrays.stream(entryIds).map(EntryId::of).toArray(EntryId[]::new);
+		return Arrays.stream(entryIds).map(RecordId::of).toArray(RecordId[]::new);
 	}
 
 	/**
@@ -1984,7 +1984,7 @@ public interface StringRedisConnection extends RedisConnection {
 		return xAck(key, group, entryIds(entryIds));
 	}
 
-	Long xAck(String key, String group, EntryId... entryIds);
+	Long xAck(String key, String group, RecordId... recordIds);
 
 	/**
 	 * Append a message to the stream {@code key}.
@@ -1996,11 +1996,11 @@ public interface StringRedisConnection extends RedisConnection {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	default EntryId xAdd(String key, Map<String, String> body) {
+	default RecordId xAdd(String key, Map<String, String> body) {
 		return xAdd(StreamRecords.newRecord().in(key).ofStrings(body));
 	}
 
-	EntryId xAdd(StringMapRecord record);
+	RecordId xAdd(StringMapRecord record);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -2017,7 +2017,7 @@ public interface StringRedisConnection extends RedisConnection {
 		return xDel(key, entryIds(entryIds));
 	}
 
-	Long xDel(String key, EntryId... entryIds);
+	Long xDel(String key, RecordId... recordIds);
 
 	/**
 	 * Create a consumer group.

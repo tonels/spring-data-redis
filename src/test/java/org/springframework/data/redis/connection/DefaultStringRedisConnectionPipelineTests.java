@@ -22,18 +22,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.redis.connection.RedisGeoCommands.DistanceUnit;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
-import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
-import org.springframework.data.redis.connection.StreamRecords.MapBackedRecord;
-import org.springframework.data.redis.connection.StreamRecords.StringMapBackedRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 
 /**
  * Unit test of {@link DefaultStringRedisConnection} that executes commands in a pipeline
@@ -1658,7 +1651,7 @@ public class DefaultStringRedisConnectionPipelineTests extends DefaultStringRedi
 	@Override // DATAREDIS-864
 	public void xAddShouldAppendRecordCorrectly() {
 
-		doReturn(Arrays.asList(EntryId.of("1-1"))).when(nativeConnection).closePipeline();
+		doReturn(Arrays.asList(RecordId.of("1-1"))).when(nativeConnection).closePipeline();
 		super.xAddShouldAppendRecordCorrectly();
 	}
 

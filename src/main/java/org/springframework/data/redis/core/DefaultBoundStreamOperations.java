@@ -21,10 +21,9 @@ import java.util.Map;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.DataType;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -68,7 +67,7 @@ class DefaultBoundStreamOperations<K, HK, HV> extends DefaultBoundKeyOperations<
 	 */
 	@Nullable
 	@Override
-	public EntryId add(Map<HK, HV> body) {
+	public RecordId add(Map<HK, HV> body) {
 		return ops.add(getKey(), body);
 	}
 

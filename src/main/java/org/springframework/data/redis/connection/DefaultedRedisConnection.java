@@ -433,29 +433,29 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default Long xAck(byte[] key, String group, EntryId... messageIds) {
+	default Long xAck(byte[] key, String group, RecordId... messageIds) {
 		return streamCommands().xAck(key, group, messageIds);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default EntryId xAdd(MapRecord<byte[], byte[], byte[]> record) {
+	default RecordId xAdd(MapRecord<byte[], byte[], byte[]> record) {
 		return streamCommands().xAdd(record);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default Long xDel(byte[] key, EntryId... entryIds) {
-		return streamCommands().xDel(key, entryIds);
+	default Long xDel(byte[] key, RecordId... recordIds) {
+		return streamCommands().xDel(key, recordIds);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default String xGroupCreate(byte[] key, ReadOffset readOffset, String group) {
-		return streamCommands().xGroupCreate(key, readOffset, group);
+	default String xGroupCreate(byte[] key, String groupName, ReadOffset readOffset) {
+		return streamCommands().xGroupCreate(key, groupName, readOffset);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
@@ -468,8 +468,8 @@ public interface DefaultedRedisConnection extends RedisConnection {
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */
 	@Override
 	@Deprecated
-	default Boolean xGroupDestroy(byte[] key, String group) {
-		return streamCommands().xGroupDestroy(key, group);
+	default Boolean xGroupDestroy(byte[] key, String groupName) {
+		return streamCommands().xGroupDestroy(key, groupName);
 	}
 
 	/** @deprecated in favor of {@link RedisConnection#streamCommands()}}. */

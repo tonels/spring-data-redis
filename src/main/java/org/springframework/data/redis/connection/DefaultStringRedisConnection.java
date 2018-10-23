@@ -3645,12 +3645,12 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	}
 
 	@Override
-	public Long xAck(String key, String group, EntryId... entryIds) {
-		return convertAndReturn(delegate.xAck(this.serialize(key), group, entryIds), identityConverter);
+	public Long xAck(String key, String group, RecordId... recordIds) {
+		return convertAndReturn(delegate.xAck(this.serialize(key), group, recordIds), identityConverter);
 	}
 
 	@Override
-	public EntryId xAdd(StringMapRecord record) {
+	public RecordId xAdd(StringMapRecord record) {
 		return convertAndReturn(delegate.xAdd(record.serialize(serializer)), identityConverter);
 	}
 
@@ -3659,8 +3659,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.StringRedisConnection#xDel(java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Long xDel(String key, EntryId... entryIds) {
-		return convertAndReturn(delegate.xDel(serialize(key), entryIds), identityConverter);
+	public Long xDel(String key, RecordId... recordIds) {
+		return convertAndReturn(delegate.xDel(serialize(key), recordIds), identityConverter);
 	}
 
 	/*
@@ -3669,7 +3669,7 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 */
 	@Override
 	public String xGroupCreate(String key, ReadOffset readOffset, String group) {
-		return convertAndReturn(delegate.xGroupCreate(serialize(key), readOffset, group), identityConverter);
+		return convertAndReturn(delegate.xGroupCreate(serialize(key), group, readOffset), identityConverter);
 	}
 
 	/*
@@ -3753,8 +3753,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAck(byte[], java.lang.String, java.lang.String[])
 	 */
 	@Override
-	public Long xAck(byte[] key, String group, EntryId... entryIds) {
-		return delegate.xAck(key, group, entryIds);
+	public Long xAck(byte[] key, String group, RecordId... recordIds) {
+		return delegate.xAck(key, group, recordIds);
 	}
 
 	/*
@@ -3762,17 +3762,17 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xAdd(byte[], MapRecord)
 	 */
 	@Override
-	public EntryId xAdd(MapRecord<byte[], byte[], byte[]> record) {
+	public RecordId xAdd(MapRecord<byte[], byte[], byte[]> record) {
 		return delegate.xAdd(record);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], EntryId)
+	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xDel(byte[], RecordId)
 	 */
 	@Override
-	public Long xDel(byte[] key, EntryId... entryIds) {
-		return delegate.xDel(key, entryIds);
+	public Long xDel(byte[] key, RecordId... recordIds) {
+		return delegate.xDel(key, recordIds);
 	}
 
 	/*
@@ -3780,8 +3780,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupCreate(byte[], org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset, java.lang.String)
 	 */
 	@Override
-	public String xGroupCreate(byte[] key, ReadOffset readOffset, String group) {
-		return delegate.xGroupCreate(key, readOffset, group);
+	public String xGroupCreate(byte[] key, String groupName, ReadOffset readOffset) {
+		return delegate.xGroupCreate(key, groupName, readOffset);
 	}
 
 	/*
@@ -3798,8 +3798,8 @@ public class DefaultStringRedisConnection implements StringRedisConnection, Deco
 	 * @see org.springframework.data.redis.connection.RedisStreamCommands#xGroupDestroy(byte[], java.lang.String)
 	 */
 	@Override
-	public Boolean xGroupDestroy(byte[] key, String group) {
-		return delegate.xGroupDestroy(key, group);
+	public Boolean xGroupDestroy(byte[] key, String groupName) {
+		return delegate.xGroupDestroy(key, groupName);
 	}
 
 	/*
