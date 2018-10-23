@@ -17,16 +17,20 @@ package org.springframework.data.redis.core;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
 import org.springframework.data.redis.connection.StreamRecords;
+import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.lang.Nullable;
 
 /**
@@ -63,6 +67,10 @@ public interface StreamOperations<K, HK, HV> {
 	}
 
 	EntryId add(MapRecord<K, HK, HV> record);
+
+	default <V> EntryId add(Record<K, V> value) {
+		return add(objectToEntry(value));
+	}
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -142,6 +150,10 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	List<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
+	default <V> List<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
+		return range(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	}
+
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
 	 *
@@ -150,7 +162,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<MapRecord<K,HK, HV>> read(StreamOffset<K> stream) {
+	default List<MapRecord<K, HK, HV>> read(StreamOffset<K> stream) {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -175,7 +187,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	default List<MapRecord<K,HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -188,7 +200,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
 	@Nullable
-	List<MapRecord<K,HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+	List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -199,7 +211,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
+	default List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
 		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -212,7 +224,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	@Nullable
-	default List<MapRecord<K,HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
+	default List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
 		return read(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -267,6 +279,10 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	List<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
 
+	default <V> List<ObjectRecord<K, V>> reverseRange(K key, Range<String> range, Class<V> targetType) {
+		return reverseRange(key, range).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	}
+
 	/**
 	 * Trims the stream to {@code count} elements.
 	 *
@@ -277,4 +293,26 @@ public interface StreamOperations<K, HK, HV> {
 	 */
 	@Nullable
 	Long trim(K key, long count);
+
+	<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
+
+	default <V> MapRecord<K, HK, HV> objectToEntry(Record<K, V> value) {
+
+		if (value instanceof ObjectRecord) {
+
+			ObjectRecord entry = ((ObjectRecord) value);
+			return Record.of(((HashMapper) getHashMapper(entry.getValue().getClass())).toHash(entry.getValue()))
+					.withId(entry.getId()).withStreamKey(entry.getStream());
+		}
+
+		if (value instanceof MapRecord) {
+			return (MapRecord<K, HK, HV>) value;
+		}
+
+		return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value)).withStreamKey(value.getStream());
+	}
+
+	default <V> ObjectRecord<K, V> entryToObject(MapRecord<K, HK, HV> entry, Class<V> targetType) {
+		return entry.toObjectRecord(getHashMapper(targetType));
+	}
 }

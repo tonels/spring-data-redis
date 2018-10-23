@@ -811,7 +811,7 @@ public interface RedisStreamCommands {
 		 * @return new instance of {@link ObjectRecord}.
 		 */
 		default <OV> ObjectRecord<S, OV> toObjectRecord(HashMapper<OV, ? super K, ? super V> mapper) {
-			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId());
+			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId()).withStreamKey(getStream());
 		}
 	}
 

@@ -225,7 +225,7 @@ public class StreamRecords {
 		@Nullable
 		@Override
 		public S getStream() {
-			return null;
+			return stream;
 		}
 
 		@Nullable

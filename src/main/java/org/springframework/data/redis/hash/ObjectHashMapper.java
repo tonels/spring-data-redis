@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.core.convert.ConverterNotFoundException;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.data.redis.core.convert.CustomConversions;
@@ -167,6 +168,9 @@ public class ObjectHashMapper implements HashMapper<Object, byte[], byte[]> {
 				value = converter.fromBytes(entry.getValue(), PropertyPath.from(key, entity.getTypeInformation()).getType());
 			} catch (PropertyReferenceException e) {
 				value = converter.fromBytes(entry.getValue(), String.class);
+			} catch (ConverterNotFoundException cnfe) {
+//				value = fromHash(entry)
+				// TODO: nested ones!
 			}
 
 			result.put(key, value);
