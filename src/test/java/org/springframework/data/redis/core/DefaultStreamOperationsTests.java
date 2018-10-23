@@ -22,7 +22,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.assertj.core.api.Assumptions;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.domain.Range.Bound;
 import org.springframework.data.redis.ConnectionFactoryTracker;
 import org.springframework.data.redis.ObjectFactory;
+import org.springframework.data.redis.Person;
 import org.springframework.data.redis.RedisTestProfileValueSource;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.EntryId;
@@ -144,6 +147,28 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 	}
 
 	@Test // DATAREDIS-864
+	public void simpleMessageReadWriteSymmetry() {
+
+		K key = keyFactory.instance();
+		HV value = hashValueFactory.instance();
+
+		Assumptions.assumeThat(value).isNotInstanceOf(Person.class);
+
+		EntryId messageId = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+
+		List<MapRecord<K, HK, HV>> messages = streamOps.range(key, Range.unbounded());
+
+		assertThat(messages).hasSize(1);
+
+		MapRecord<K, HK, HV> message = messages.get(0);
+
+		assertThat(message.getId()).isEqualTo(messageId);
+		assertThat(message.getStream()).isEqualTo(key);
+
+		assertThat(message.getValue().values()).containsExactly(value);
+	}
+
+	@Test // DATAREDIS-864
 	public void rangeShouldReportMessages() {
 
 		K key = keyFactory.instance();
@@ -221,6 +246,28 @@ public class DefaultStreamOperationsTests<K, HK, HV> {
 		if (!(key instanceof byte[] || value instanceof byte[])) {
 			assertThat(message.getValue()).containsEntry(hashKey, value);
 		}
+	}
+
+	@Test // DATAREDIS-864
+	public void readShouldReadSimpleMessage() {
+
+		K key = keyFactory.instance();
+		HV value = hashValueFactory.instance();
+
+		EntryId messageId1 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+		EntryId messageId2 = streamOps.add(StreamRecords.objectBacked(value).withStreamKey(key));
+
+		List<ObjectRecord<K, HV>> messages = streamOps.read(StreamOffset.create(key, ReadOffset.from("0-0")),
+				(Class<HV>) value.getClass());
+
+		assertThat(messages).hasSize(2);
+
+		ObjectRecord<K, HV> message = messages.get(0);
+
+		assertThat(message.getId()).isEqualTo(messageId1);
+		assertThat(message.getStream()).isEqualTo(key);
+
+		assertThat(message.getValue()).isEqualTo(value);
 	}
 
 	@Test // DATAREDIS-864

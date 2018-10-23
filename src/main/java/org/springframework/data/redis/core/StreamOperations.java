@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.core;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,6 +53,14 @@ public interface StreamOperations<K, HK, HV> {
 	 */
 	@Nullable
 	Long acknowledge(K key, String group, String... messageIds);
+
+	default Long acknowledge(K key, String group, EntryId... messageIds){
+		return acknowledge(key, group, Arrays.stream(messageIds).map(EntryId::getValue).toArray(String[]::new));
+	}
+
+	default Long acknowledge(String group, Record<K,?> record) {
+		return acknowledge(record.getStream(), group, record.getId());
+	}
 
 	/**
 	 * Append a message to the stream {@code key}.
@@ -166,6 +175,10 @@ public interface StreamOperations<K, HK, HV> {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
+	default <V> List<ObjectRecord<K, V>> read(StreamOffset<K> stream, Class<V> targetType) {
+		return read(StreamReadOptions.empty(), targetType, new StreamOffset[] { stream });
+	}
+
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
 	 *
@@ -201,6 +214,10 @@ public interface StreamOperations<K, HK, HV> {
 	 */
 	@Nullable
 	List<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+
+	default <V> List<ObjectRecord<K, V>> read(StreamReadOptions readOptions, Class<V> targetType, StreamOffset<K>... streams) {
+		return read(readOptions, streams).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	}
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -253,6 +270,10 @@ public interface StreamOperations<K, HK, HV> {
 	 */
 	@Nullable
 	List<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
+
+	default <V> List<ObjectRecord<K, V>> read(Consumer consumer, StreamReadOptions readOptions, Class<V> targetType, StreamOffset<K>... streams) {
+		return read(consumer, readOptions, streams).stream().map(it -> entryToObject(it, targetType)).collect(Collectors.toList());
+	}
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
