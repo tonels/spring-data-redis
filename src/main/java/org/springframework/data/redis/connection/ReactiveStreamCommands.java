@@ -286,12 +286,12 @@ public interface ReactiveStreamCommands {
 	 */
 	class DeleteCommand extends KeyCommand {
 
-		private final List<String> messageIds;
+		private final List<RecordId> recordIds;
 
-		private DeleteCommand(@Nullable ByteBuffer key, List<String> messageIds) {
+		private DeleteCommand(@Nullable ByteBuffer key, List<RecordId> recordIds) {
 
 			super(key);
-			this.messageIds = messageIds;
+			this.recordIds = recordIds;
 		}
 
 		/**
@@ -310,22 +310,35 @@ public interface ReactiveStreamCommands {
 		/**
 		 * Applies the {@literal recordIds}. Constructs a new command instance with all previously configured properties.
 		 *
-		 * @param messageIds must not be {@literal null}.
+		 * @param recordIds must not be {@literal null}.
 		 * @return a new {@link DeleteCommand} with {@literal recordIds} applied.
 		 */
-		public DeleteCommand messages(String... messageIds) {
+		public DeleteCommand records(String... recordIds) {
 
-			Assert.notNull(messageIds, "MessageIds must not be null!");
+			Assert.notNull(recordIds, "RecordIds must not be null!");
 
-			List<String> newMessageIds = new ArrayList<>(getMessageIds().size() + messageIds.length);
-			newMessageIds.addAll(getMessageIds());
-			newMessageIds.addAll(Arrays.asList(messageIds));
+			return records(Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
+		}
+
+		/**
+		 * Applies the {@literal recordIds}. Constructs a new command instance with all previously configured properties.
+		 *
+		 * @param recordIds must not be {@literal null}.
+		 * @return a new {@link DeleteCommand} with {@literal recordIds} applied.
+		 */
+		public DeleteCommand records(RecordId... recordIds) {
+
+			Assert.notNull(recordIds, "RecordIds must not be null!");
+
+			List<RecordId> newMessageIds = new ArrayList<>(getRecordIds().size() + recordIds.length);
+			newMessageIds.addAll(getRecordIds());
+			newMessageIds.addAll(Arrays.asList(recordIds));
 
 			return new DeleteCommand(getKey(), newMessageIds);
 		}
 
-		public List<String> getMessageIds() {
-			return messageIds;
+		public List<RecordId> getRecordIds() {
+			return recordIds;
 		}
 	}
 
@@ -334,17 +347,35 @@ public interface ReactiveStreamCommands {
 	 * number of IDs passed in case certain IDs do not exist.
 	 *
 	 * @param key the stream key.
-	 * @param messageIds stream message Id's.
+	 * @param recordIds stream message Id's.
 	 * @return number of removed entries.
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
-	default Mono<Long> xDel(ByteBuffer key, String... messageIds) {
+	default Mono<Long> xDel(ByteBuffer key, String... recordIds) {
 
 		Assert.notNull(key, "Key must not be null!");
-		Assert.notNull(messageIds, "Body must not be null!");
+		Assert.notNull(recordIds, "RecordIds must not be null!");
 
-		return xDel(Mono.just(DeleteCommand.stream(key).messages(messageIds))).next().map(CommandResponse::getOutput);
+		return xDel(Mono.just(DeleteCommand.stream(key).records(recordIds))).next().map(CommandResponse::getOutput);
 	}
+
+	/**
+	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
+	 * number of IDs passed in case certain IDs do not exist.
+	 *
+	 * @param key the stream key.
+	 * @param recordIds stream message Id's.
+	 * @return number of removed entries.
+	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
+	 */
+	default Mono<Long> xDel(ByteBuffer key, RecordId... recordIds) {
+
+		Assert.notNull(key, "Key must not be null!");
+		Assert.notNull(recordIds, "RecordIds must not be null!");
+
+		return xDel(Mono.just(DeleteCommand.stream(key).records(recordIds))).next().map(CommandResponse::getOutput);
+	}
+
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the

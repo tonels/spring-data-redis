@@ -120,9 +120,9 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		return connection.execute(cmd -> Flux.from(commands).concatMap(command -> {
 
 			Assert.notNull(command.getKey(), "Key must not be null!");
-			Assert.notNull(command.getMessageIds(), "MessageIds must not be null!");
+			Assert.notNull(command.getRecordIds(), "MessageIds must not be null!");
 
-			return cmd.xdel(command.getKey(), command.getMessageIds().toArray(new String[0]))
+			return cmd.xdel(command.getKey(), entryIdsToString(command.getRecordIds()))
 					.map(value -> new NumericResponse<>(command, value));
 		}));
 	}
