@@ -120,7 +120,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(StreamOffset<K> stream) {
+	default Flux<MapRecord<K, ?, V>> read(StreamOffset<K> stream) {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -131,7 +131,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(StreamOffset<K>... streams) {
+	default Flux<MapRecord<K, ?, V>> read(StreamOffset<K>... streams) {
 		return read(StreamReadOptions.empty(), streams);
 	}
 
@@ -143,7 +143,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -155,7 +155,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	Flux<StreamMessage<K, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+	Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -165,7 +165,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(Consumer consumer, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamOffset<K> stream) {
 		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -177,7 +177,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(Consumer consumer, StreamOffset<K>... streams) {
+	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamOffset<K>... streams) {
 		return read(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -190,7 +190,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(consumer, readOptions, new StreamOffset[] { stream });
 	}
 
@@ -203,7 +203,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	Flux<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
+	Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.

@@ -129,7 +129,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
+	public Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "Streams must not be null!");
@@ -147,7 +147,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams) {
+	public Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
 		Assert.notNull(consumer, "Consumer must not be null!");
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");

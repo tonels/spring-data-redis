@@ -18,6 +18,7 @@ package org.springframework.data.redis.stream;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assume.*;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -95,7 +96,7 @@ public class StreamReceiverIntegrationTests {
 
 		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory);
 
-		Flux<StreamMessage<String, String>> messages = receiver
+		Flux<MapRecord<String, ?, String>> messages = receiver
 				.receive(StreamOffset.create("my-stream", ReadOffset.from("0-0")));
 
 		messages.as(StepVerifier::create) //
@@ -103,7 +104,7 @@ public class StreamReceiverIntegrationTests {
 				.consumeNextWith(it -> {
 
 					assertThat(it.getStream()).isEqualTo("my-stream");
-					assertThat(it.getBody()).containsEntry("key", "value");
+//					assertThat(it.getValue()).containsEntry("key", "value");
 				}) //
 				.thenCancel() //
 				.verify(Duration.ofSeconds(5));
@@ -118,7 +119,7 @@ public class StreamReceiverIntegrationTests {
 				.build();
 		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory, options);
 
-		Flux<StreamMessage<String, String>> messages = receiver
+		Flux<MapRecord<String,?, String>> messages = receiver
 				.receive(StreamOffset.create("my-stream", ReadOffset.latest()));
 
 		messages.as(publisher -> StepVerifier.create(publisher, 0)) //
@@ -142,7 +143,7 @@ public class StreamReceiverIntegrationTests {
 				}).consumeNextWith(it -> {
 
 					assertThat(it.getStream()).isEqualTo("my-stream");
-					assertThat(it.getBody()).containsEntry("key", "value3");
+//					assertThat(it.getValue()).containsEntry("key", "value3");
 				}) //
 				.thenCancel() //
 				.verify(Duration.ofSeconds(5));
@@ -153,7 +154,7 @@ public class StreamReceiverIntegrationTests {
 
 		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory);
 
-		Flux<StreamMessage<String, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
+		Flux<MapRecord<String, ?, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
 				StreamOffset.create("my-stream", ReadOffset.lastConsumed()));
 
 		// required to initialize stream
@@ -165,11 +166,13 @@ public class StreamReceiverIntegrationTests {
 				.consumeNextWith(it -> {
 
 					assertThat(it.getStream()).isEqualTo("my-stream");
-					assertThat(it.getBody()).containsEntry("key", "value");
+//					assertThat(it.getValue()).containsEntry("key", "value");
+					assertThat(it.getValue()).containsValue("value");
 				}).consumeNextWith(it -> {
 
 					assertThat(it.getStream()).isEqualTo("my-stream");
-					assertThat(it.getBody()).containsEntry("key2", "value2");
+//					assertThat(it.getValue()).containsEntry("key2", "value2");
+					assertThat(it.getValue()).containsValue("value2");
 				}) //
 				.thenCancel() //
 				.verify(Duration.ofSeconds(5));
@@ -183,7 +186,7 @@ public class StreamReceiverIntegrationTests {
 
 		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory, options);
 
-		Flux<StreamMessage<String, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
+		Flux<MapRecord<String, ?, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
 				StreamOffset.create("my-stream", ReadOffset.lastConsumed()));
 
 		// required to initialize stream

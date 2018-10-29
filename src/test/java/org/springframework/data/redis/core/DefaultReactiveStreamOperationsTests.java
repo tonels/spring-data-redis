@@ -180,11 +180,12 @@ public class DefaultReactiveStreamOperationsTests<K, V> {
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
 
-					assertThat(actual.getId()).isEqualTo(messageId);
+					assertThat(actual.getId().getValue()).isEqualTo(messageId);
 					assertThat(actual.getStream()).isEqualTo(key);
 
 					if (!(key instanceof byte[] || value instanceof byte[])) {
-						assertThat(actual.getBody()).containsEntry(key, value);
+//						assertThat(actual.getValue()).containsEntry(key, value);
+						assertThat(actual.getValue()).containsValue(value);
 					}
 				}).verifyComplete();
 	}

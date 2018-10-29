@@ -16,6 +16,7 @@
 package org.springframework.data.redis.stream;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -83,7 +84,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receive(org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> receive(StreamOffset<K> streamOffset) {
+	public Flux<MapRecord<K, ?, V>> receive(StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("receive(%s)", streamOffset));
@@ -92,7 +93,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 		return Flux.defer(() -> {
 
 			PollState pollState = PollState.standalone(streamOffset.getOffset());
-			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
+			BiFunction<K, ReadOffset, Flux<MapRecord<K, ?, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(readOptions, StreamOffset.create(key, readOffset));
 
 			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
@@ -104,7 +105,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receiveAutoAck(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> receiveAutoAck(Consumer consumer, StreamOffset<K> streamOffset) {
+	public Flux<MapRecord<K, ?, V>> receiveAutoAck(Consumer consumer, StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("receiveAutoAck(%s, %s)", consumer, streamOffset));
@@ -113,7 +114,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 		return Flux.defer(() -> {
 
 			PollState pollState = PollState.consumer(consumer, streamOffset.getOffset());
-			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
+			BiFunction<K, ReadOffset, Flux<MapRecord<K, ?, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(consumer, readOptions, StreamOffset.create(key, readOffset));
 
 			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
@@ -125,7 +126,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receive(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> receive(Consumer consumer, StreamOffset<K> streamOffset) {
+	public Flux<MapRecord<K, ?, V>> receive(Consumer consumer, StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("receive(%s, %s)", consumer, streamOffset));
@@ -136,7 +137,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 		return Flux.defer(() -> {
 
 			PollState pollState = PollState.consumer(consumer, streamOffset.getOffset());
-			BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction = (key, readOffset) -> template.opsForStream()
+			BiFunction<K, ReadOffset, Flux<MapRecord<K, ?, V>>> readFunction = (key, readOffset) -> template.opsForStream()
 					.read(consumer, noack, StreamOffset.create(key, readOffset));
 
 			return Flux.create(sink -> new StreamSubscription(sink, streamOffset.getKey(), pollState, readFunction).arm());
@@ -149,12 +150,12 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 	@RequiredArgsConstructor
 	class StreamSubscription {
 
-		private final Queue<StreamMessage<K, V>> overflow = Queues.<StreamMessage<K, V>> small().get();
+		private final Queue<MapRecord<K, ?, V>> overflow = Queues.<MapRecord<K, ?, V>> small().get();
 
-		private final FluxSink<StreamMessage<K, V>> sink;
+		private final FluxSink<MapRecord<K, ?, V>> sink;
 		private final K key;
 		private final PollState pollState;
-		private final BiFunction<K, ReadOffset, Flux<StreamMessage<K, V>>> readFunction;
+		private final BiFunction<K, ReadOffset, Flux<MapRecord<K, ?, V>>> readFunction;
 
 		/**
 		 * Arm the subscription so {@link Subscription#request(long) demand} activates polling.
@@ -249,15 +250,15 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 							String.format("[stream: %s] scheduleIfRequired(): Activating subscription, offset %s", key, readOffset));
 				}
 
-				Flux<StreamMessage<K, V>> poll = readFunction.apply(key, readOffset);
+				Flux<MapRecord<K, ?, V>> poll = readFunction.apply(key, readOffset);
 
 				poll.subscribe(getSubscriber());
 			}
 		}
 
-		private CoreSubscriber<StreamMessage<K, V>> getSubscriber() {
+		private CoreSubscriber<MapRecord<K, ?, V>> getSubscriber() {
 
-			return new CoreSubscriber<StreamMessage<K, V>>() {
+			return new CoreSubscriber<MapRecord<K, ?, V>>() {
 
 				@Override
 				public void onSubscribe(Subscription s) {
@@ -265,7 +266,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 				}
 
 				@Override
-				public void onNext(StreamMessage<K, V> message) {
+				public void onNext(MapRecord<K, ?, V> message) {
 					onStreamMessage(message);
 				}
 
@@ -293,13 +294,13 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 			};
 		}
 
-		private void onStreamMessage(StreamMessage<K, V> message) {
+		private void onStreamMessage(MapRecord<K, ?, V> message) {
 
 			if (logger.isDebugEnabled()) {
 				logger.debug(String.format("[stream: %s] onStreamMessage(%s)", key, message));
 			}
 
-			pollState.updateReadOffset(message.getId());
+			pollState.updateReadOffset(message.getId().getValue());
 
 			long requested = pollState.getRequested();
 
@@ -358,7 +359,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 
 				if (demand == Long.MAX_VALUE) {
 
-					StreamMessage<K, V> message = overflow.poll();
+					MapRecord<K, ?, V> message = overflow.poll();
 
 					if (message == null) {
 						if (logger.isDebugEnabled()) {
@@ -376,7 +377,7 @@ class DefaultStreamReceiver<K, V> implements StreamReceiver<K, V> {
 
 				} else if (pollState.setRequested(demand, demand - 1)) {
 
-					StreamMessage<K, V> message = overflow.poll();
+					MapRecord<K, ?, V> message = overflow.poll();
 
 					if (message == null) {
 

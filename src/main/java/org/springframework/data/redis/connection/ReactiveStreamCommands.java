@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.connection;
 
+import org.springframework.data.redis.connection.StreamRecords.ByteBufferMapBackedRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -636,7 +637,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRead(StreamOffset<ByteBuffer> stream) {
+	default Flux<ByteBufferRecord> xRead(StreamOffset<ByteBuffer> stream) {
 		return xRead(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -647,7 +648,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRead(StreamOffset<ByteBuffer>... streams) {
+	default Flux<ByteBufferRecord> xRead(StreamOffset<ByteBuffer>... streams) {
 		return xRead(StreamReadOptions.empty(), streams);
 	}
 
@@ -659,7 +660,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRead(StreamReadOptions readOptions,
+	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions,
 			StreamOffset<ByteBuffer> stream) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
@@ -676,7 +677,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRead(StreamReadOptions readOptions,
+	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions,
 			StreamOffset<ByteBuffer>... streams) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
@@ -694,20 +695,7 @@ public interface ReactiveStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<CommandResponse<ReadCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> read(Publisher<ReadCommand> commands) {
-
-		return readF(commands).map(it -> new CommandResponse<>(it.getInput(), it.getOutput().map(bar -> new StreamMessage<>(bar.getStream(), bar.getId().getValue(), bar.getValue()))));
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s.
-	 *
-	 * @param commands must not be {@literal null}.
-	 * @return list with members of the resulting stream.
-	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
-	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
-	 */
-	Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> readF(Publisher<ReadCommand> commands);
+	Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> read(Publisher<ReadCommand> commands);
 
 
 	/**
@@ -718,7 +706,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xReadGroup(Consumer consumer, StreamOffset<ByteBuffer> stream) {
+	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer, StreamOffset<ByteBuffer> stream) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -730,7 +718,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xReadGroup(Consumer consumer,
+	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer,
 			StreamOffset<ByteBuffer>... streams) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), streams);
 	}
@@ -744,7 +732,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<ByteBuffer> stream) {
 		return xReadGroup(consumer, readOptions, new StreamOffset[] { stream });
 	}
@@ -758,7 +746,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
+	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<ByteBuffer>... streams) {
 
 		Assert.notNull(consumer, "Consumer must not be null!");

@@ -170,7 +170,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#read(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> readF(
+	public Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> read(
 			Publisher<ReadCommand> commands) {
 
 		return Flux.from(commands).map(command -> {

@@ -123,7 +123,7 @@ public class LettuceReactiveStreamCommandsTests extends LettuceReactiveCommandsT
 				.assertNext(it -> {
 
 					assertThat(it.getStream()).isEqualTo(KEY_1_BBUFFER);
-					assertThat(it.getBody()).containsEntry(KEY_1_BBUFFER, VALUE_1_BBUFFER);
+					assertThat(it.getValue()).containsEntry(KEY_1_BBUFFER, VALUE_1_BBUFFER);
 				}) //
 				.verifyComplete();
 	}
@@ -143,7 +143,7 @@ public class LettuceReactiveStreamCommandsTests extends LettuceReactiveCommandsT
 				.assertNext(it -> {
 
 					assertThat(it.getStream()).isEqualTo(KEY_1_BBUFFER);
-					assertThat(it.getBody()).containsEntry(KEY_2_BBUFFER, VALUE_2_BBUFFER);
+					assertThat(it.getValue()).containsEntry(KEY_2_BBUFFER, VALUE_2_BBUFFER);
 				}) //
 				.verifyComplete();
 	}

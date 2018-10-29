@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.stream;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 
 import java.nio.ByteBuffer;
@@ -135,7 +136,7 @@ public interface StreamReceiver<K, V> {
 	 * @return Flux of inbound {@link StreamMessage}s.
 	 * @see StreamOffset#create(Object, ReadOffset)
 	 */
-	Flux<StreamMessage<K, V>> receive(StreamOffset<K> streamOffset);
+	Flux<MapRecord<K, ?, V>> receive(StreamOffset<K> streamOffset);
 
 	/**
 	 * Starts a Redis Stream consumer that consumes {@link StreamMessage messages} from the {@link StreamOffset stream}.
@@ -150,7 +151,7 @@ public interface StreamReceiver<K, V> {
 	 * @see StreamOffset#create(Object, ReadOffset)
 	 * @see ReadOffset#lastConsumed()
 	 */
-	Flux<StreamMessage<K, V>> receiveAutoAck(Consumer consumer, StreamOffset<K> streamOffset);
+	Flux<MapRecord<K, ?, V>> receiveAutoAck(Consumer consumer, StreamOffset<K> streamOffset);
 
 	/**
 	 * Starts a Redis Stream consumer that consumes {@link StreamMessage messages} from the {@link StreamOffset stream}.
@@ -167,7 +168,7 @@ public interface StreamReceiver<K, V> {
 	 * @see StreamOffset#create(Object, ReadOffset)
 	 * @see ReadOffset#lastConsumed()
 	 */
-	Flux<StreamMessage<K, V>> receive(Consumer consumer, StreamOffset<K> streamOffset);
+	Flux<MapRecord<K, ?, V>> receive(Consumer consumer, StreamOffset<K> streamOffset);
 
 	/**
 	 * Options for {@link StreamReceiver}.
