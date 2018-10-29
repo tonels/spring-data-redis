@@ -2,15 +2,18 @@ package org.springframework.data.redis.connection;
 
 import lombok.EqualsAndHashCode;
 
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteMapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StringMapRecord;
+import org.springframework.data.redis.util.ByteUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -26,6 +29,10 @@ public class StreamRecords {
 
 	public static ByteMapRecord rawBytes(Map<byte[], byte[]> raw) {
 		return new ByteMapBackedRecord(null, RecordId.autoGenerate(), raw);
+	}
+
+	public static ByteBufferRecord rawBuffer(Map<ByteBuffer, ByteBuffer> raw) {
+		return new ByteBufferMapBackedRecord(null, RecordId.autoGenerate(), raw);
 	}
 
 	public static StringMapRecord string(Map<String, String> values) {
@@ -86,6 +93,23 @@ public class StreamRecords {
 			// todo auto conversion of known values
 			return new ByteMapBackedRecord((byte[]) stream, id, value);
 		}
+
+		public ByteBufferRecord ofBuffer(Map<ByteBuffer, ByteBuffer> value) {
+
+			ByteBuffer streamKey = null;
+
+			if (stream instanceof ByteBuffer) {
+				streamKey = (ByteBuffer) stream;
+			} else if (stream instanceof String) {
+				streamKey = ByteUtils.getByteBuffer((String) stream);
+			} else if (stream instanceof byte[]) {
+				streamKey = ByteBuffer.wrap((byte[]) stream);
+			} else {
+				throw new IllegalArgumentException(String.format("Stream key %s cannot be converted to byte buffer.", stream));
+			}
+
+			return new ByteBufferMapBackedRecord(streamKey, id, value);
+		}
 	}
 
 	static class MapBackedRecord<S, K, V> implements MapRecord<S, K, V> {
@@ -141,7 +165,7 @@ public class StreamRecords {
 		@Override
 		public boolean equals(Object o) {
 
-			if(o == null) {
+			if (o == null) {
 				return false;
 			}
 
@@ -188,6 +212,23 @@ public class StreamRecords {
 
 		public ByteMapBackedRecord withId(RecordId id) {
 			return new ByteMapBackedRecord(getStream(), id, getValue());
+		}
+	}
+
+	static class ByteBufferMapBackedRecord extends MapBackedRecord<ByteBuffer, ByteBuffer, ByteBuffer>
+			implements ByteBufferRecord {
+
+		ByteBufferMapBackedRecord(ByteBuffer stream, RecordId recordId, Map<ByteBuffer, ByteBuffer> map) {
+			super(stream, recordId, map);
+		}
+
+		@Override
+		public ByteBufferMapBackedRecord withStreamKey(ByteBuffer key) {
+			return new ByteBufferMapBackedRecord(key, getId(), getValue());
+		}
+
+		public ByteBufferMapBackedRecord withId(RecordId id) {
+			return new ByteBufferMapBackedRecord(getStream(), id, getValue());
 		}
 	}
 

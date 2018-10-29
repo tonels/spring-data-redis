@@ -15,7 +15,6 @@
  */
 package org.springframework.data.redis.connection;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -31,7 +30,9 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.CommandResponse;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.KeyCommand;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.NumericResponse;
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
@@ -166,7 +167,6 @@ public interface ReactiveStreamCommands {
 				.map(NumericResponse::getOutput);
 	}
 
-
 	/**
 	 * Acknowledge one or more messages as processed.
 	 *
@@ -181,28 +181,41 @@ public interface ReactiveStreamCommands {
 	 *
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	class AddStreamMessage extends KeyCommand {
+	class AddStreamRecord extends KeyCommand {
 
-		private final Map<ByteBuffer, ByteBuffer> body;
+		private final ByteBufferRecord record;
 
-		private AddStreamMessage(@Nullable ByteBuffer key, Map<ByteBuffer, ByteBuffer> body) {
+		private AddStreamRecord(ByteBufferRecord record) {
 
-			super(key);
+			super(record.getStream());
 
-			this.body = body;
+			this.record = record;
 		}
 
 		/**
-		 * Creates a new {@link AddStreamMessage} given {@link Map body}.
+		 * Creates a new {@link AddStreamRecord} given {@link Map body}.
+		 *
+		 * @param record must not be {@literal null}.
+		 * @return a new {@link AddStreamRecord}.
+		 */
+		public static AddStreamRecord of(ByteBufferRecord record) {
+
+			Assert.notNull(record, "Record must not be null!");
+
+			return new AddStreamRecord(record);
+		}
+
+		/**
+		 * Creates a new {@link AddStreamRecord} given {@link Map body}.
 		 *
 		 * @param body must not be {@literal null}.
-		 * @return a new {@link AddStreamMessage} for {@link Map}.
+		 * @return a new {@link AddStreamRecord} for {@link Map}.
 		 */
-		public static AddStreamMessage body(Map<ByteBuffer, ByteBuffer> body) {
+		public static AddStreamRecord body(Map<ByteBuffer, ByteBuffer> body) {
 
-			Assert.notNull(body, "GeoLocation must not be null!");
+			Assert.notNull(body, "Body must not be null!");
 
-			return new AddStreamMessage(null, body);
+			return new AddStreamRecord(StreamRecords.rawBuffer(body));
 		}
 
 		/**
@@ -211,15 +224,19 @@ public interface ReactiveStreamCommands {
 		 * @param key must not be {@literal null}.
 		 * @return a new {@link ReactiveGeoCommands.GeoAddCommand} with {@literal key} applied.
 		 */
-		public AddStreamMessage to(ByteBuffer key) {
-			return new AddStreamMessage(key, body);
+		public AddStreamRecord to(ByteBuffer key) {
+			return new AddStreamRecord(record.withStreamKey(key));
 		}
 
 		/**
 		 * @return
 		 */
 		public Map<ByteBuffer, ByteBuffer> getBody() {
-			return body;
+			return record.getValue();
+		}
+
+		public ByteBufferRecord getRecord() {
+			return record;
 		}
 	}
 
@@ -236,7 +253,21 @@ public interface ReactiveStreamCommands {
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(body, "Body must not be null!");
 
-		return xAdd(Mono.just(AddStreamMessage.body(body).to(key))).next().map(CommandResponse::getOutput);
+		return xAdd(StreamRecords.newRecord().in(key).ofBuffer(body));
+	}
+
+	/**
+	 * Add stream message with given {@literal body} to {@literal key}.
+	 *
+	 * @param record must not be {@literal null}.
+	 * @return
+	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
+	 */
+	default Mono<String> xAdd(ByteBufferRecord record) {
+
+		Assert.notNull(record, "Record must not be null!");
+
+		return xAdd(Mono.just(AddStreamRecord.of(record))).next().map(CommandResponse::getOutput);
 	}
 
 	/**
@@ -246,7 +277,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	Flux<CommandResponse<AddStreamMessage, String>> xAdd(Publisher<AddStreamMessage> commands);
+	Flux<CommandResponse<AddStreamRecord, String>> xAdd(Publisher<AddStreamRecord> commands);
 
 	/**
 	 * {@code XDEL} command parameters.

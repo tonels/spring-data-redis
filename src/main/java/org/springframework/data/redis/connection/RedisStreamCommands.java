@@ -19,6 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
 import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.util.ByteUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.NumberUtils;
@@ -849,6 +851,77 @@ public interface RedisStreamCommands {
 			return Record.<S, OV> of((OV) (mapper).fromHash((Map) getValue())).withId(getId()).withStreamKey(getStream());
 		}
 	}
+
+	/**
+	 * A {@link Record} within the stream backed by a collection of binary {@literal field/value} paris.
+	 *
+	 * @author Christoph Strobl
+	 */
+	interface ByteBufferRecord extends MapRecord<ByteBuffer, ByteBuffer, ByteBuffer> {
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisStreamCommands.Record#withId(org.springframework.data.redis.connection.RedisStreamCommands.RecordId)
+		 */
+		@Override
+		ByteBufferRecord withId(RecordId id);
+
+		ByteBufferRecord withStreamKey(ByteBuffer key);
+
+		/**
+		 * Deserialize {@link #getStream() key} and {@link #getValue() field/value pairs} with the given
+		 * {@link RedisSerializer}. An already assigned {@link RecordId id} is carried over to the new instance.
+		 *
+		 * @param serializer can be {@literal null} if the {@link Record} only holds binary data.
+		 * @return new {@link MapRecord} holding the deserialized values.
+		 */
+		default <T> MapRecord<T, T, T> deserialize(@Nullable RedisSerializer<T> serializer) {
+			return deserialize(serializer, serializer, serializer);
+		}
+
+		/**
+		 * Deserialize {@link #getStream() key} with the {@literal streamSerializer}, field names with the
+		 * {@literal fieldSerializer} and values with the {@literal valueSerializer}. An already assigned {@link RecordId
+		 * id} is carried over to the new instance.
+		 *
+		 * @param streamSerializer can be {@literal null} if the key suites already the target format.
+		 * @param fieldSerializer can be {@literal null} if the fields suite already the target format.
+		 * @param valueSerializer can be {@literal null} if the values suite already the target format.
+		 * @return new {@link MapRecord} holding the deserialized values.
+		 */
+		default <K, HK, HV> MapRecord<K, HK, HV> deserialize(@Nullable RedisSerializer<? extends K> streamSerializer,
+															 @Nullable RedisSerializer<? extends HK> fieldSerializer,
+															 @Nullable RedisSerializer<? extends HV> valueSerializer) {
+
+			return mapEntries(it -> Collections
+					.<HK, HV> singletonMap(fieldSerializer != null ? fieldSerializer.deserialize(ByteUtils.getBytes(it.getKey())) : (HK) it.getKey(),
+							valueSerializer != null ? valueSerializer.deserialize(ByteUtils.getBytes(it.getValue())) : (HV) it.getValue())
+					.entrySet().iterator().next())
+					.withStreamKey(streamSerializer != null ? streamSerializer.deserialize(ByteUtils.getBytes(getStream())) : (K) getStream());
+		}
+
+		/**
+		 * Turn a binary {@link MapRecord} into a {@link ByteMapRecord}.
+		 *
+		 * @param source must not be {@literal null}.
+		 * @return new instance of {@link ByteMapRecord}.
+		 */
+//		static ByteBufferRecord of(MapRecord<byte[], byte[], byte[]> source) {
+//			return StreamRecords.newRecord().in(ByteBuffer.wrap(source.getStream())).withId(ByteBuffer.wrap(source.getId())).ofBytes(ByteBuffer.wrap(source.getValue()));
+//		}
+
+		/**
+		 * Turn a binary {@link MapRecord} into a {@link ByteMapRecord}.
+		 *
+		 * @param source must not be {@literal null}.
+		 * @return new instance of {@link ByteMapRecord}.
+		 */
+//		static ByteBufferRecord of(MapRecord<ByteBuffer, ByteBuffer, ByteBuffer> source) {
+//			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBytes(source.getValue());
+//		}
+	}
+
+
 
 	/**
 	 * A {@link Record} within the stream backed by a collection of binary {@literal field/value} paris.
