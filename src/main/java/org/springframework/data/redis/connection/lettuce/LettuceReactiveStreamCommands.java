@@ -170,7 +170,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#read(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<CommandResponse<ReadCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> read(
+	public Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> readF(
 			Publisher<ReadCommand> commands) {
 
 		return Flux.from(commands).map(command -> {
@@ -188,19 +188,19 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 		});
 	}
 
-	private static Flux<StreamMessage<ByteBuffer, ByteBuffer>> doRead(ReadCommand command, StreamReadOptions readOptions,
+	private static Flux<ByteBufferRecord> doRead(ReadCommand command, StreamReadOptions readOptions,
 			RedisClusterReactiveCommands<ByteBuffer, ByteBuffer> cmd) {
 
 		StreamOffset<ByteBuffer>[] streamOffsets = toStreamOffsets(command.getStreamOffsets());
 		XReadArgs args = StreamConverters.toReadArgs(readOptions);
 
 		if (command.getConsumer() == null) {
-			return cmd.xread(args, streamOffsets).map(StreamConverters::toStreamMessage);
+			return cmd.xread(args, streamOffsets).map(it -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofBuffer(it.getBody()));
 		}
 
 		io.lettuce.core.Consumer<ByteBuffer> lettuceConsumer = toConsumer(command.getConsumer());
 
-		return cmd.xreadgroup(lettuceConsumer, args, streamOffsets).map(StreamConverters::toStreamMessage);
+		return cmd.xreadgroup(lettuceConsumer, args, streamOffsets).map(it -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofBuffer(it.getBody()));
 	}
 
 	/*

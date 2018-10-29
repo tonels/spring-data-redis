@@ -602,9 +602,9 @@ public interface ReactiveStreamCommands {
 		}
 
 		/**
-		 * Applies a {@link Consumer}. Constructs a new command instance with all previously configured properties.
+		 * Applies the given {@link StreamReadOptions}. Constructs a new command instance with all previously configured properties.
 		 *
-		 * @param consumer must not be {@literal null}.
+		 * @param options must not be {@literal null}.
 		 * @return a new {@link ReadCommand} with {@link Consumer} applied.
 		 */
 		public ReadCommand withOptions(StreamReadOptions options) {
@@ -694,7 +694,21 @@ public interface ReactiveStreamCommands {
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	Flux<CommandResponse<ReadCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> read(Publisher<ReadCommand> commands);
+	default Flux<CommandResponse<ReadCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> read(Publisher<ReadCommand> commands) {
+
+		return readF(commands).map(it -> new CommandResponse<>(it.getInput(), it.getOutput().map(bar -> new StreamMessage<>(bar.getStream(), bar.getId().getValue(), bar.getValue()))));
+	}
+
+	/**
+	 * Read messages from one or more {@link StreamOffset}s.
+	 *
+	 * @param commands must not be {@literal null}.
+	 * @return list with members of the resulting stream.
+	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
+	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
+	 */
+	Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> readF(Publisher<ReadCommand> commands);
+
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
