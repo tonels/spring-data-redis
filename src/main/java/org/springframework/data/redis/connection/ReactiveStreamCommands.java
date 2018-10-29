@@ -534,7 +534,20 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	Flux<CommandResponse<RangeCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> xRange(
+	default Flux<CommandResponse<RangeCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> xRange(
+			Publisher<RangeCommand> commands) {
+
+		return xRangeF(commands).map(it -> new CommandResponse(it.getInput(), it.getOutput().map(bar -> new StreamMessage(bar.getStream(), bar.getId().getValue(), bar.getValue()))));
+	}
+
+	/**
+	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit}.
+	 *
+	 * @param commands must not be {@literal null}.
+	 * @return
+	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
+	 */
+	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRangeF(
 			Publisher<RangeCommand> commands);
 
 	/**
