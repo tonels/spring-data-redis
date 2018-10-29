@@ -166,7 +166,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#reverseRange(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> reverseRange(K key, Range<String> range, Limit limit) {
+	public Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");

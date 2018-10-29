@@ -208,7 +208,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xRevRange(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<CommandResponse<RangeCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> xRevRange(
+	public Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRevRange(
 			Publisher<RangeCommand> commands) {
 
 		return connection.execute(cmd -> Flux.from(commands).map(command -> {
@@ -221,7 +221,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 			io.lettuce.core.Limit lettuceLimit = LettuceConverters.toLimit(command.getLimit());
 
 			return new CommandResponse<>(command,
-					cmd.xrevrange(command.getKey(), lettuceRange, lettuceLimit).map(StreamConverters::toStreamMessage));
+					cmd.xrevrange(command.getKey(), lettuceRange, lettuceLimit).map(it -> StreamRecords.newRecord().in(it.getStream()).withId(it.getId()).ofBuffer(it.getBody())));
 		}));
 	}
 

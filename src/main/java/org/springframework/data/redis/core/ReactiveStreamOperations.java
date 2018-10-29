@@ -213,7 +213,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	default Flux<StreamMessage<K, V>> reverseRange(K key, Range<String> range) {
+	default Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range) {
 		return reverseRange(key, range, Limit.unlimited());
 	}
 
@@ -226,7 +226,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	Flux<StreamMessage<K, V>> reverseRange(K key, Range<String> range, Limit limit);
+	Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

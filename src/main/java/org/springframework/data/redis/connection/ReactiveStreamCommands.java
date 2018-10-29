@@ -15,7 +15,6 @@
  */
 package org.springframework.data.redis.connection;
 
-import org.springframework.data.redis.connection.StreamRecords.ByteBufferMapBackedRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,7 +33,6 @@ import org.springframework.data.redis.connection.ReactiveRedisConnection.Numeric
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -377,7 +375,6 @@ public interface ReactiveStreamCommands {
 		return xDel(Mono.just(DeleteCommand.stream(key).records(recordIds))).next().map(CommandResponse::getOutput);
 	}
 
-
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
 	 * number of IDs passed in case certain IDs do not exist.
@@ -535,8 +532,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRange(
-			Publisher<RangeCommand> commands);
+	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRange(Publisher<RangeCommand> commands);
 
 	/**
 	 * {@code XRANGE}/{@code XREVRANGE} command parameters.
@@ -603,7 +599,8 @@ public interface ReactiveStreamCommands {
 		}
 
 		/**
-		 * Applies the given {@link StreamReadOptions}. Constructs a new command instance with all previously configured properties.
+		 * Applies the given {@link StreamReadOptions}. Constructs a new command instance with all previously configured
+		 * properties.
 		 *
 		 * @param options must not be {@literal null}.
 		 * @return a new {@link ReadCommand} with {@link Consumer} applied.
@@ -660,8 +657,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions,
-			StreamOffset<ByteBuffer> stream) {
+	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions, StreamOffset<ByteBuffer> stream) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(stream, "StreamOffset must not be null!");
@@ -677,8 +673,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions,
-			StreamOffset<ByteBuffer>... streams) {
+	default Flux<ByteBufferRecord> xRead(StreamReadOptions readOptions, StreamOffset<ByteBuffer>... streams) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "StreamOffsets must not be null!");
@@ -696,7 +691,6 @@ public interface ReactiveStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> read(Publisher<ReadCommand> commands);
-
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -718,8 +712,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer,
-			StreamOffset<ByteBuffer>... streams) {
+	default Flux<ByteBufferRecord> xReadGroup(Consumer consumer, StreamOffset<ByteBuffer>... streams) {
 		return xReadGroup(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -765,7 +758,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRevRange(ByteBuffer key, Range<String> range) {
+	default Flux<ByteBufferRecord> xRevRange(ByteBuffer key, Range<String> range) {
 		return xRevRange(key, range, Limit.unlimited());
 	}
 
@@ -778,7 +771,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRevRange(ByteBuffer key, Range<String> range, Limit limit) {
+	default Flux<ByteBufferRecord> xRevRange(ByteBuffer key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -795,8 +788,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	Flux<CommandResponse<RangeCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> xRevRange(
-			Publisher<RangeCommand> commands);
+	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRevRange(Publisher<RangeCommand> commands);
 
 	/**
 	 * {@code XTRIM} command parameters.

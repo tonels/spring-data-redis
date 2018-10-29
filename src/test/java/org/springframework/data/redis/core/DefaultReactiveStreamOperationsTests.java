@@ -18,6 +18,8 @@ package org.springframework.data.redis.core;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assume.*;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.test.StepVerifier;
 
 import java.util.Collection;
@@ -160,9 +162,9 @@ public class DefaultReactiveStreamOperationsTests<K, V> {
 		String messageId1 = streamOperations.add(key, Collections.singletonMap(key, value)).block();
 		String messageId2 = streamOperations.add(key, Collections.singletonMap(key, value)).block();
 
-		streamOperations.reverseRange(key, Range.unbounded()).map(StreamMessage::getId) //
+		streamOperations.reverseRange(key, Range.unbounded()).map(MapRecord::getId) //
 				.as(StepVerifier::create) //
-				.expectNext(messageId2, messageId1) //
+				.expectNext(RecordId.of(messageId2), RecordId.of(messageId1)) //
 				.verifyComplete();
 	}
 
