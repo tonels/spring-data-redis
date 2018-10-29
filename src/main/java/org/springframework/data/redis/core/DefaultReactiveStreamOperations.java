@@ -17,11 +17,14 @@ package org.springframework.data.redis.core;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -112,7 +115,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#range(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public Flux<StreamMessage<K, V>> range(K key, Range<String> range, Limit limit) {
+	public Flux<MapRecord<K,?, V>> range(K key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -191,6 +194,36 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 				.toArray(StreamOffset[]::new);
 	}
 
+	private MapRecord<K, ?, V> readValue(ByteBufferRecord message) {
+
+//		Map<K, V> body = new LinkedHashMap<>(message.getBody().size());
+
+//		message.getBody().forEach((k, v) -> body.put(readKey(k), readValue(v)));
+
+//		return new StreamMessage<>(readKey(message.getStream()), message.getId(), body);
+
+//		return message.deserialize(serializationContext.getKeySerializationPair().getReader())
+
+		return message.mapEntries(it -> {
+
+			//TODO: switch to HashKey
+			return Collections.singletonMap(readKey(it.getKey()), readValue(it.getValue())).entrySet().iterator().next();
+		}).withStreamKey(readKey(message.getStream()));
+
+//		serializationContext.getKeySerializationPair().getReader()
+//		message.
+//		return null;
+	}
+
+	private <S,T> Function<S,T> read() {
+
+		return (it) -> {
+
+
+			return null;
+		};
+	}
+
 	private StreamMessage<K, V> readValue(StreamMessage<ByteBuffer, ByteBuffer> message) {
 
 		Map<K, V> body = new LinkedHashMap<>(message.getBody().size());
@@ -220,6 +253,10 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 
 	private ByteBuffer rawValue(V value) {
 		return serializationContext.getValueSerializationPair().write(value);
+	}
+
+	private Object readHashKey(ByteBuffer buffer) {
+		return serializationContext.getHashKeySerializationPair().getReader().read(buffer);
 	}
 
 	private K readKey(ByteBuffer buffer) {

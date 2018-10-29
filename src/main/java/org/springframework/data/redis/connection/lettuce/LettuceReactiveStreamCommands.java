@@ -149,7 +149,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xRange(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRangeF(Publisher<RangeCommand> commands) {
+	public Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRange(Publisher<RangeCommand> commands) {
 
 		return connection.execute(cmd -> Flux.from(commands).map(command -> {
 

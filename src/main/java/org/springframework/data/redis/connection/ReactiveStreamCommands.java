@@ -504,7 +504,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRange(ByteBuffer key, Range<String> range) {
+	default Flux<ByteBufferRecord> xRange(ByteBuffer key, Range<String> range) {
 		return xRange(key, range, Limit.unlimited());
 	}
 
@@ -517,7 +517,7 @@ public interface ReactiveStreamCommands {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	default Flux<StreamMessage<ByteBuffer, ByteBuffer>> xRange(ByteBuffer key, Range<String> range, Limit limit) {
+	default Flux<ByteBufferRecord> xRange(ByteBuffer key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -534,20 +534,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	default Flux<CommandResponse<RangeCommand, Flux<StreamMessage<ByteBuffer, ByteBuffer>>>> xRange(
-			Publisher<RangeCommand> commands) {
-
-		return xRangeF(commands).map(it -> new CommandResponse(it.getInput(), it.getOutput().map(bar -> new StreamMessage(bar.getStream(), bar.getId().getValue(), bar.getValue()))));
-	}
-
-	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit}.
-	 *
-	 * @param commands must not be {@literal null}.
-	 * @return
-	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
-	 */
-	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRangeF(
+	Flux<CommandResponse<RangeCommand, Flux<ByteBufferRecord>>> xRange(
 			Publisher<RangeCommand> commands);
 
 	/**
@@ -564,7 +551,7 @@ public interface ReactiveStreamCommands {
 
 		/**
 		 * @param streamOffsets must not be {@literal null}.
-		 * @param readArgs
+		 * @param readOptions
 		 * @param consumer
 		 */
 		public ReadCommand(List<StreamOffset<ByteBuffer>> streamOffsets, @Nullable StreamReadOptions readOptions,

@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.core;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -97,7 +98,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	default Flux<StreamMessage<K, V>> range(K key, Range<String> range) {
+	default Flux<MapRecord<K, ?, V>> range(K key, Range<String> range) {
 		return range(key, range, Limit.unlimited());
 	}
 
@@ -110,7 +111,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	Flux<StreamMessage<K, V>> range(K key, Range<String> range, Limit limit);
+	Flux<MapRecord<K, ?,  V>> range(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
