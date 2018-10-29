@@ -43,6 +43,11 @@ class LettuceStreamCommands implements RedisStreamCommands {
 
 	// TODO: move
 	private String[] entryIdsToString(RecordId[] recordIds) {
+
+		if(recordIds.length == 1) {
+			return new String[]{recordIds[0].getValue()};
+		}
+
 		return Arrays.stream(recordIds).map(RecordId::getValue).toArray(String[]::new);
 	}
 

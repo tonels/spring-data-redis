@@ -18,10 +18,13 @@ package org.springframework.data.redis.connection.lettuce;
 import io.lettuce.core.XReadArgs;
 import io.lettuce.core.XReadArgs.StreamOffset;
 import io.lettuce.core.cluster.api.reactive.RedisClusterReactiveCommands;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.core.publisher.Flux;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
@@ -46,6 +49,17 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 
 	private final LettuceReactiveRedisConnection connection;
 
+	// TODO: move
+	private String[] entryIdsToString(List<RecordId> recordIds) {
+
+		if(recordIds.size() == 1) {
+			return new String[]{recordIds.get(0).getValue()};
+		}
+
+		return recordIds.stream().map(RecordId::getValue).toArray(String[]::new);
+	}
+
+
 	/**
 	 * Create new {@link LettuceReactiveStreamCommands}.
 	 *
@@ -68,10 +82,10 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 
 			Assert.notNull(command.getKey(), "Key must not be null!");
 			Assert.notNull(command.getGroup(), "Group must not be null!");
-			Assert.notNull(command.getMessageIds(), "MessageIds must not be null!");
+			Assert.notNull(command.getRecordIds(), "MessageIds must not be null!");
 
 			return cmd.xack(command.getKey(), ByteUtils.getByteBuffer(command.getGroup()),
-					command.getMessageIds().toArray(new String[0])).map(value -> new NumericResponse<>(command, value));
+					entryIdsToString(command.getRecordIds())).map(value -> new NumericResponse<>(command, value));
 		}));
 	}
 

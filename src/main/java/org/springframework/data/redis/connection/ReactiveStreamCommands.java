@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.connection;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,13 +55,13 @@ public interface ReactiveStreamCommands {
 	class AcknowledgeCommand extends KeyCommand {
 
 		private final @Nullable String group;
-		private final List<String> messageIds;
+		private final List<RecordId> recordIds;
 
-		private AcknowledgeCommand(@Nullable ByteBuffer key, @Nullable String group, List<String> messageIds) {
+		private AcknowledgeCommand(@Nullable ByteBuffer key, @Nullable String group, List<RecordId> recordIds) {
 
 			super(key);
 			this.group = group;
-			this.messageIds = messageIds;
+			this.recordIds = recordIds;
 		}
 
 		/**
@@ -77,18 +78,31 @@ public interface ReactiveStreamCommands {
 		}
 
 		/**
-		 * Applies the {@literal messageIds}. Constructs a new command instance with all previously configured properties.
+		 * Applies the {@literal recordIds}. Constructs a new command instance with all previously configured properties.
 		 *
-		 * @param messageIds must not be {@literal null}.
-		 * @return a new {@link AcknowledgeCommand} with {@literal messageIds} applied.
+		 * @param recordIds must not be {@literal null}.
+		 * @return a new {@link AcknowledgeCommand} with {@literal recordIds} applied.
 		 */
-		public AcknowledgeCommand forMessage(String... messageIds) {
+		public AcknowledgeCommand forRecords(String... recordIds) {
 
-			Assert.notNull(messageIds, "MessageIds must not be null!");
+			Assert.notNull(recordIds, "MessageIds must not be null!");
 
-			List<String> newMessageIds = new ArrayList<>(getMessageIds().size() + messageIds.length);
-			newMessageIds.addAll(getMessageIds());
-			newMessageIds.addAll(Arrays.asList(messageIds));
+			return forRecords(Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
+		}
+
+		/**
+		 * Applies the {@literal recordIds}. Constructs a new command instance with all previously configured properties.
+		 *
+		 * @param recordIds must not be {@literal null}.
+		 * @return a new {@link AcknowledgeCommand} with {@literal recordIds} applied.
+		 */
+		public AcknowledgeCommand forRecords(RecordId... recordIds) {
+
+			Assert.notNull(recordIds, "MessageIds must not be null!");
+
+			List<RecordId> newMessageIds = new ArrayList<>(getRecordIds().size() + recordIds.length);
+			newMessageIds.addAll(getRecordIds());
+			newMessageIds.addAll(Arrays.asList(recordIds));
 
 			return new AcknowledgeCommand(getKey(), getGroup(), newMessageIds);
 		}
@@ -96,14 +110,14 @@ public interface ReactiveStreamCommands {
 		/**
 		 * Applies the {@literal group}. Constructs a new command instance with all previously configured properties.
 		 *
-		 * @param messageIds must not be {@literal null}.
+		 * @param group must not be {@literal null}.
 		 * @return a new {@link AcknowledgeCommand} with {@literal group} applied.
 		 */
 		public AcknowledgeCommand inGroup(String group) {
 
 			Assert.notNull(group, "Group must not be null!");
 
-			return new AcknowledgeCommand(getKey(), group, getMessageIds());
+			return new AcknowledgeCommand(getKey(), group, getRecordIds());
 		}
 
 		@Nullable
@@ -111,8 +125,8 @@ public interface ReactiveStreamCommands {
 			return group;
 		}
 
-		public List<String> getMessageIds() {
-			return messageIds;
+		public List<RecordId> getRecordIds() {
+			return recordIds;
 		}
 	}
 
@@ -121,18 +135,37 @@ public interface ReactiveStreamCommands {
 	 *
 	 * @param key the stream key.
 	 * @param group name of the consumer group.
-	 * @param messageIds message Id's to acknowledge.
+	 * @param recordIds message Id's to acknowledge.
 	 * @return
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Mono<Long> xAck(ByteBuffer key, String group, String... messageIds) {
+	default Mono<Long> xAck(ByteBuffer key, String group, String... recordIds) {
 
 		Assert.notNull(key, "Key must not be null!");
-		Assert.notNull(messageIds, "MessageIds must not be null!");
+		Assert.notNull(recordIds, "MessageIds must not be null!");
 
-		return xAck(Mono.just(AcknowledgeCommand.stream(key).inGroup(group).forMessage(messageIds))).next()
+		return xAck(Mono.just(AcknowledgeCommand.stream(key).inGroup(group).forRecords(recordIds))).next()
 				.map(NumericResponse::getOutput);
 	}
+
+	/**
+	 * Acknowledge one or more messages as processed.
+	 *
+	 * @param key the stream key.
+	 * @param group name of the consumer group.
+	 * @param recordIds message Id's to acknowledge.
+	 * @return
+	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
+	 */
+	default Mono<Long> xAck(ByteBuffer key, String group, RecordId... recordIds) {
+
+		Assert.notNull(key, "Key must not be null!");
+		Assert.notNull(recordIds, "MessageIds must not be null!");
+
+		return xAck(Mono.just(AcknowledgeCommand.stream(key).inGroup(group).forRecords(recordIds))).next()
+				.map(NumericResponse::getOutput);
+	}
+
 
 	/**
 	 * Acknowledge one or more messages as processed.
@@ -244,10 +277,10 @@ public interface ReactiveStreamCommands {
 		}
 
 		/**
-		 * Applies the {@literal messageIds}. Constructs a new command instance with all previously configured properties.
+		 * Applies the {@literal recordIds}. Constructs a new command instance with all previously configured properties.
 		 *
 		 * @param messageIds must not be {@literal null}.
-		 * @return a new {@link DeleteCommand} with {@literal messageIds} applied.
+		 * @return a new {@link DeleteCommand} with {@literal recordIds} applied.
 		 */
 		public DeleteCommand messages(String... messageIds) {
 
