@@ -33,7 +33,6 @@ import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.ReactiveStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -47,10 +46,11 @@ import org.springframework.util.Assert;
  * @since 2.2
  */
 @RequiredArgsConstructor
-class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<K, V> {
+class DefaultReactiveStreamOperations<K, HK,  HV> implements ReactiveStreamOperations<K, HK, HV> {
 
 	private final @NonNull ReactiveRedisTemplate<?, ?> template;
-	private final @NonNull RedisSerializationContext<K, V> serializationContext;
+
+	private final @NonNull RedisSerializationContext<K, ?> serializationContext;
 
 	/*
 	 * (non-Javadoc)
@@ -72,7 +72,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#add(java.lang.Object, java.util.Map)
 	 */
 	@Override
-	public Mono<String> add(K key, Map<K, V> body) {
+	public Mono<String> add(K key, Map<HK, HV> body) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(body, "Body must not be null!");
@@ -80,7 +80,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 
 		Map<ByteBuffer, ByteBuffer> rawBody = new LinkedHashMap<>(body.size());
 
-		body.forEach((k, v) -> rawBody.put(rawKey(k), rawValue(v)));
+		body.forEach((k, v) -> rawBody.put(rawHashKey(k), rawValue(v)));
 
 		return createMono(connection -> connection.xAdd(rawKey(key), rawBody));
 	}
@@ -115,7 +115,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#range(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public Flux<MapRecord<K,?, V>> range(K key, Range<String> range, Limit limit) {
+	public Flux<MapRecord<K,HK, HV>> range(K key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -129,7 +129,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
+	public Flux<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
 		Assert.notNull(streams, "Streams must not be null!");
@@ -147,7 +147,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#read(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset[])
 	 */
 	@Override
-	public Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams) {
+	public Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams) {
 
 		Assert.notNull(consumer, "Consumer must not be null!");
 		Assert.notNull(readOptions, "StreamReadOptions must not be null!");
@@ -166,7 +166,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 	 * @see org.springframework.data.redis.core.ReactiveStreamOperations#reverseRange(java.lang.Object, org.springframework.data.domain.Range, org.springframework.data.redis.connection.RedisZSetCommands.Limit)
 	 */
 	@Override
-	public Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range, Limit limit) {
+	public Flux<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(range, "Range must not be null!");
@@ -194,7 +194,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 				.toArray(StreamOffset[]::new);
 	}
 
-	private MapRecord<K, ?, V> readValue(ByteBufferRecord message) {
+	private MapRecord<K, HK, HV> readValue(ByteBufferRecord message) {
 
 //		Map<K, V> body = new LinkedHashMap<>(message.getBody().size());
 
@@ -207,7 +207,7 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return message.mapEntries(it -> {
 
 			//TODO: switch to HashKey
-			return Collections.singletonMap(readKey(it.getKey()), readValue(it.getValue())).entrySet().iterator().next();
+			return Collections.singletonMap(readHashKey(it.getKey()), readValue(it.getValue())).entrySet().iterator().next();
 		}).withStreamKey(readKey(message.getStream()));
 
 //		serializationContext.getKeySerializationPair().getReader()
@@ -224,14 +224,14 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		};
 	}
 
-	private StreamMessage<K, V> readValue(StreamMessage<ByteBuffer, ByteBuffer> message) {
-
-		Map<K, V> body = new LinkedHashMap<>(message.getBody().size());
-
-		message.getBody().forEach((k, v) -> body.put(readKey(k), readValue(v)));
-
-		return new StreamMessage<>(readKey(message.getStream()), message.getId(), body);
-	}
+//	private StreamMessage<K, V> readValue(StreamMessage<ByteBuffer, ByteBuffer> message) {
+//
+//		Map<K, V> body = new LinkedHashMap<>(message.getBody().size());
+//
+//		message.getBody().forEach((k, v) -> body.put(readKey(k), readValue(v)));
+//
+//		return new StreamMessage<>(readKey(message.getStream()), message.getId(), body);
+//	}
 
 	private <T> Mono<T> createMono(Function<ReactiveStreamCommands, Publisher<T>> function) {
 
@@ -251,19 +251,23 @@ class DefaultReactiveStreamOperations<K, V> implements ReactiveStreamOperations<
 		return serializationContext.getKeySerializationPair().write(key);
 	}
 
-	private ByteBuffer rawValue(V value) {
-		return serializationContext.getValueSerializationPair().write(value);
+	private ByteBuffer rawHashKey(HK key) {
+		return serializationContext.getHashKeySerializationPair().write(key);
 	}
 
-	private Object readHashKey(ByteBuffer buffer) {
-		return serializationContext.getHashKeySerializationPair().getReader().read(buffer);
+	private ByteBuffer rawValue(HV value) {
+		return serializationContext.getHashValueSerializationPair().write(value);
+	}
+
+	private HK readHashKey(ByteBuffer buffer) {
+		return (HK) serializationContext.getHashKeySerializationPair().getReader().read(buffer);
 	}
 
 	private K readKey(ByteBuffer buffer) {
 		return serializationContext.getKeySerializationPair().read(buffer);
 	}
 
-	private V readValue(ByteBuffer buffer) {
-		return serializationContext.getValueSerializationPair().read(buffer);
+	private HV readValue(ByteBuffer buffer) {
+		return (HV) serializationContext.getHashValueSerializationPair().read(buffer);
 	}
 }

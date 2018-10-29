@@ -24,7 +24,6 @@ import java.util.Map;
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -35,7 +34,7 @@ import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
  * @author Mark Paluch
  * @since 2.2
  */
-public interface ReactiveStreamOperations<K, V> {
+public interface ReactiveStreamOperations<K, HK, HV> {
 
 	/**
 	 * Acknowledge one or more messages as processed.
@@ -56,7 +55,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return the message Ids.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Flux<String> add(K key, Publisher<? extends Map<K, V>> bodyPublisher) {
+	default Flux<String> add(K key, Publisher<? extends Map<HK, HV>> bodyPublisher) {
 		return Flux.from(bodyPublisher).flatMap(it -> add(key, it));
 	}
 
@@ -68,7 +67,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return the message Id.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	Mono<String> add(K key, Map<K, V> body);
+	Mono<String> add(K key, Map<HK, HV> body);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -98,7 +97,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> range(K key, Range<String> range) {
+	default Flux<MapRecord<K, HK, HV>> range(K key, Range<String> range) {
 		return range(key, range, Limit.unlimited());
 	}
 
@@ -111,7 +110,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
-	Flux<MapRecord<K, ?,  V>> range(K key, Range<String> range, Limit limit);
+	Flux<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
@@ -120,7 +119,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(StreamOffset<K> stream) {
+	default Flux<MapRecord<K, HK, HV>> read(StreamOffset<K> stream) {
 		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -131,7 +130,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(StreamOffset<K>... streams) {
+	default Flux<MapRecord<K, HK, HV>> read(StreamOffset<K>... streams) {
 		return read(StreamReadOptions.empty(), streams);
 	}
 
@@ -143,7 +142,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(readOptions, new StreamOffset[] { stream });
 	}
 
@@ -155,7 +154,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	Flux<MapRecord<K, ?, V>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
+	Flux<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
@@ -165,7 +164,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
 		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
 	}
 
@@ -177,7 +176,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamOffset<K>... streams) {
+	default Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamOffset<K>... streams) {
 		return read(consumer, StreamReadOptions.empty(), streams);
 	}
 
@@ -190,7 +189,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
+	default Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
 		return read(consumer, readOptions, new StreamOffset[] { stream });
 	}
 
@@ -203,7 +202,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	Flux<MapRecord<K, ?, V>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
+	Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
 	 * Read messages from a stream within a specific {@link Range} in reverse order.
@@ -213,7 +212,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	default Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range) {
+	default Flux<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range) {
 		return reverseRange(key, range, Limit.unlimited());
 	}
 
@@ -226,7 +225,7 @@ public interface ReactiveStreamOperations<K, V> {
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
-	Flux<MapRecord<K, ?, V>> reverseRange(K key, Range<String> range, Limit limit);
+	Flux<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
 
 	/**
 	 * Trims the stream to {@code count} elements.

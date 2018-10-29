@@ -94,9 +94,9 @@ public class StreamReceiverIntegrationTests {
 	@Test // DATAREDIS-864
 	public void shouldReceiveMessages() {
 
-		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory);
+		StreamReceiver<String,String, String> receiver = StreamReceiver.create(connectionFactory);
 
-		Flux<MapRecord<String, ?, String>> messages = receiver
+		Flux<MapRecord<String, String, String>> messages = receiver
 				.receive(StreamOffset.create("my-stream", ReadOffset.from("0-0")));
 
 		messages.as(StepVerifier::create) //
@@ -115,11 +115,11 @@ public class StreamReceiverIntegrationTests {
 
 		// XADD/XREAD highly timing-dependent as this tests require a poll subscription to receive messages using $ offset.
 
-		StreamReceiverOptions<String, String> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofSeconds(4))
+		StreamReceiverOptions<String, String, String> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofSeconds(4))
 				.build();
-		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory, options);
+		StreamReceiver<String, String, String> receiver = StreamReceiver.create(connectionFactory, options);
 
-		Flux<MapRecord<String,?, String>> messages = receiver
+		Flux<MapRecord<String,String, String>> messages = receiver
 				.receive(StreamOffset.create("my-stream", ReadOffset.latest()));
 
 		messages.as(publisher -> StepVerifier.create(publisher, 0)) //
@@ -152,9 +152,9 @@ public class StreamReceiverIntegrationTests {
 	@Test // DATAREDIS-864
 	public void shouldReceiveAsConsumerGroupMessages() {
 
-		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory);
+		StreamReceiver<String, String, String> receiver = StreamReceiver.create(connectionFactory);
 
-		Flux<MapRecord<String, ?, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
+		Flux<MapRecord<String, String, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
 				StreamOffset.create("my-stream", ReadOffset.lastConsumed()));
 
 		// required to initialize stream
@@ -181,12 +181,12 @@ public class StreamReceiverIntegrationTests {
 	@Test // DATAREDIS-864
 	public void shouldStopReceivingOnError() {
 
-		StreamReceiverOptions<String, String> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+		StreamReceiverOptions<String, String, String> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
 				.build();
 
-		StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory, options);
+		StreamReceiver<String,String, String> receiver = StreamReceiver.create(connectionFactory, options);
 
-		Flux<MapRecord<String, ?, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
+		Flux<MapRecord<String, String, String>> messages = receiver.receive(Consumer.from("my-group", "my-consumer-id"),
 				StreamOffset.create("my-stream", ReadOffset.lastConsumed()));
 
 		// required to initialize stream
