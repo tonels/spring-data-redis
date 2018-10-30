@@ -32,8 +32,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.springframework.data.domain.Range;
 import org.springframework.data.domain.Range.Bound;
 import org.springframework.data.redis.ConnectionFactoryTracker;
-import org.springframework.data.redis.DoubleObjectFactory;
-import org.springframework.data.redis.LongObjectFactory;
 import org.springframework.data.redis.ObjectFactory;
 import org.springframework.data.redis.PersonObjectFactory;
 import org.springframework.data.redis.RedisTestProfileValueSource;
@@ -57,6 +55,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
  * Integration tests for {@link DefaultReactiveStreamOperations}.
  *
  * @author Mark Paluch
+ * @auhtor Christoph Strobl
  */
 @RunWith(Parameterized.class)
 @SuppressWarnings("unchecked")
@@ -127,8 +126,6 @@ public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 	@Test // DATAREDIS-864
 	public void addShouldAddMessage() {
 
-		assumeFalse(valueFactory instanceof PersonObjectFactory);
-
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
@@ -174,10 +171,6 @@ public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 	@Test // DATAREDIS-864
 	public void rangeShouldReportMessages() {
 
-		assumeFalse(valueFactory instanceof PersonObjectFactory);
-		assumeFalse(keyFactory instanceof LongObjectFactory);
-		assumeFalse(keyFactory instanceof DoubleObjectFactory);
-
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
@@ -199,8 +192,6 @@ public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 	@Test // DATAREDIS-864
 	public void reverseRangeShouldReportMessages() {
 
-		assumeFalse(valueFactory instanceof PersonObjectFactory);
-
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
@@ -215,11 +206,29 @@ public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 	}
 
 	@Test // DATAREDIS-864
+	public void reverseRangeShouldConvertSimpleMessages() {
+
+		assumeTrue(!(serializer instanceof Jackson2JsonRedisSerializer)
+				&& !(serializer instanceof GenericJackson2JsonRedisSerializer));
+
+		K key = keyFactory.instance();
+		HK hashKey = hashKeyFactory.instance();
+		HV value = valueFactory.instance();
+
+		RecordId messageId1 = streamOperations.add(StreamRecords.objectBacked(value).withStreamKey(key)).block();
+		RecordId messageId2 = streamOperations.add(StreamRecords.objectBacked(value).withStreamKey(key)).block();
+
+		streamOperations.reverseRange((Class<HV>) value.getClass(), key, Range.unbounded()).as(StepVerifier::create)
+				.consumeNextWith(it -> assertThat(it.getId()).isEqualTo(messageId2))
+				.consumeNextWith(it -> assertThat(it.getId()).isEqualTo(messageId1)).verifyComplete();
+	}
+
+	@Test // DATAREDIS-864
 	public void readShouldReadMessage() {
 
-		assumeFalse(valueFactory instanceof PersonObjectFactory);
-		assumeFalse(keyFactory instanceof LongObjectFactory);
-		assumeFalse(keyFactory instanceof DoubleObjectFactory);
+		// assumeFalse(valueFactory instanceof PersonObjectFactory);
+		// assumeFalse(keyFactory instanceof LongObjectFactory);
+		// assumeFalse(keyFactory instanceof DoubleObjectFactory);
 
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
@@ -236,7 +245,6 @@ public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 
 					if (!(key instanceof byte[] || value instanceof byte[])) {
 						assertThat(actual.getValue()).containsEntry(hashKey, value);
-						// assertThat(actual.getValue()).containsValue(value);
 					}
 				}).verifyComplete();
 	}

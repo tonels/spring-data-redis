@@ -55,10 +55,28 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	Long acknowledge(K key, String group, String... recordIds);
 
+	/**
+	 * Acknowledge one or more records as processed.
+	 *
+	 * @param key the stream key.
+	 * @param group name of the consumer group.
+	 * @param recordIds record id's to acknowledge.
+	 * @return length of acknowledged records. {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
+	 */
+	@Nullable
 	default Long acknowledge(K key, String group, RecordId... recordIds) {
 		return acknowledge(key, group, Arrays.stream(recordIds).map(RecordId::getValue).toArray(String[]::new));
 	}
 
+	/**
+	 * Acknowledge the given record as processed.
+	 *
+	 * @param group name of the consumer group.
+	 * @param record the {@link Record} to acknowledge.
+	 * @return length of acknowledged records. {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
+	 */
 	default Long acknowledge(String group, Record<K, ?> record) {
 		return acknowledge(record.getStream(), group, record.getId());
 	}
@@ -76,6 +94,14 @@ public interface StreamOperations<K, HK, HV> {
 		return add(StreamRecords.newRecord().in(key).ofMap(content));
 	}
 
+	/**
+	 * Append a record, backed by a {@link Map} holding the field/value pairs, to the stream.
+	 *
+	 * @param record the record to append.
+	 * @return the record Id. {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
+	 */
+	@Nullable
 	RecordId add(MapRecord<K, HK, HV> record);
 
 	default <V> RecordId add(Record<K, V> value) {

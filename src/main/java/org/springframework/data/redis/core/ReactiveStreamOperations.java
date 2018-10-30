@@ -15,26 +15,24 @@
  */
 package org.springframework.data.redis.core;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
-import org.springframework.data.redis.hash.HashMapper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
 import org.springframework.data.redis.connection.StreamRecords;
+import org.springframework.data.redis.hash.HashMapper;
 
 /**
  * Redis stream specific operations.
@@ -46,30 +44,47 @@ import org.springframework.data.redis.connection.StreamRecords;
 public interface ReactiveStreamOperations<K, HK, HV> {
 
 	/**
-	 * Acknowledge one or more messages as processed.
+	 * Acknowledge one or more records as processed.
 	 *
 	 * @param key the stream key.
 	 * @param group name of the consumer group.
-	 * @param recordIds message Id's to acknowledge.
-	 * @return length of acknowledged messages.
+	 * @param recordIds record Id's to acknowledge.
+	 * @return the {@link Mono} emitting the length of acknowledged records.
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
 	default Mono<Long> acknowledge(K key, String group, String... recordIds) {
 		return acknowledge(key, group, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
 	}
 
+	/**
+	 * Acknowledge one or more records as processed.
+	 *
+	 * @param key the stream key.
+	 * @param group name of the consumer group.
+	 * @param recordIds record Id's to acknowledge.
+	 * @return the {@link Mono} emitting the length of acknowledged records.
+	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
+	 */
 	Mono<Long> acknowledge(K key, String group, RecordId... recordIds);
 
+	/**
+	 * Acknowledge the given record as processed.
+	 *
+	 * @param group name of the consumer group.
+	 * @param record the {@link Record} to acknowledge.
+	 * @return the {@link Mono} emitting the length of acknowledged records.
+	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
+	 */
 	default Mono<Long> acknowledge(String group, Record<K, ?> record) {
 		return acknowledge(record.getStream(), group, record.getId());
 	}
 
 	/**
-	 * Append one or more message to the stream {@code key}.
+	 * Append one or more records to the stream {@code key}.
 	 *
 	 * @param key the stream key.
-	 * @param bodyPublisher message body {@link Publisher}.
-	 * @return the message Ids.
+	 * @param bodyPublisher record body {@link Publisher}.
+	 * @return the record Ids.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	default Flux<RecordId> add(K key, Publisher<? extends Map<HK, HV>> bodyPublisher) {
@@ -77,57 +92,86 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Append a message to the stream {@code key}.
+	 * Append a record to the stream {@code key}.
 	 *
 	 * @param key the stream key.
-	 * @param body message body.
-	 * @return the message Id.
+	 * @param body record body.
+	 * @return the {@link Mono} emitting the {@link RecordId}.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	default Mono<RecordId> add(K key, Map<HK, HV> body) {
 		return add(StreamRecords.newRecord().in(key).ofMap(body));
 	}
 
+	/**
+	 * Append a record, backed by a {@link Map} holding the field/value pairs, to the stream.
+	 *
+	 * @param record the record to append.
+	 * @return the {@link Mono} emitting the {@link RecordId}.
+	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
+	 */
 	Mono<RecordId> add(MapRecord<K, HK, HV> record);
 
-	default <V> Mono<RecordId> add(Record<K, V> value) {
-		return add(toMapRecord(value));
+	/**
+	 * Append the record, backed by the given value, to the stream. The value will be hashed and serialized.
+	 *
+	 * @param record must not be {@literal null}.
+	 * @param <V>
+	 * @return
+	 */
+	default <V> Mono<RecordId> add(Record<K, V> record) {
+		return add(toMapRecord(record));
 	}
 
 	/**
-	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
-	 * number of IDs passed in case certain IDs do not exist.
+	 * Removes the specified records from the stream. Returns the number of records deleted, that may be different from
+	 * the number of IDs passed in case certain IDs do not exist.
 	 *
 	 * @param key the stream key.
-	 * @param recordIds stream message Id's.
-	 * @return number of removed entries.
+	 * @param recordIds stream record Id's.
+	 * @return the {@link Mono} emitting the number of removed records.
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	default Mono<Long> delete(K key, String... recordIds) {
 		return delete(key, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
 	}
 
+	/**
+	 * Removes a given {@link Record} from the stream.
+	 *
+	 * @param record must not be {@literal null}.
+	 * @return he {@link Mono} emitting the number of removed records.
+	 */
 	default Mono<Long> delete(Record<K, ?> record) {
 		return delete(record.getStream(), record.getId());
 	}
 
+	/**
+	 * Removes the specified records from the stream. Returns the number of records deleted, that may be different from
+	 * the number of IDs passed in case certain IDs do not exist.
+	 *
+	 * @param key the stream key.
+	 * @param recordIds stream record Id's.
+	 * @return the {@link Mono} emitting the number of removed records.
+	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
+	 */
 	Mono<Long> delete(K key, RecordId... recordIds);
 
 	/**
 	 * Get the length of a stream.
 	 *
 	 * @param key the stream key.
-	 * @return length of the stream.
+	 * @return the {@link Mono} emitting the length of the stream.
 	 * @see <a href="http://redis.io/commands/xlen">Redis Documentation: XLEN</a>
 	 */
 	Mono<Long> size(K key);
 
 	/**
-	 * Read messages from a stream within a specific {@link Range}.
+	 * Read records from a stream within a specific {@link Range}.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
-	 * @return list with members of the resulting stream.
+	 * @return the {@link Flux} emitting the records one by one.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	default Flux<MapRecord<K, HK, HV>> range(K key, Range<String> range) {
@@ -135,33 +179,55 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit}.
+	 * Read all records from a stream within a specific {@link Range}.
+	 *
+	 * @param key the stream key.
+	 * @param range must not be {@literal null}.
+	 * @return lthe {@link Flux} emitting the records one by one.
+	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
+	 */
+	default <V> Flux<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
+		return range(key, range, Limit.unlimited(), targetType);
+	}
+
+	/**
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit}.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
 	 * @param limit must not be {@literal null}.
-	 * @return list with members of the resulting stream.
+	 * @return lthe {@link Flux} emitting the records one by one.
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	Flux<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
-	default <V> Flux<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
-		return range(key, range).map(it -> toObjectRecord(it, targetType));
+	/**
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit}.
+	 *
+	 * @param key the stream key.
+	 * @param range must not be {@literal null}.
+	 * @param limit must not be {@literal null}.
+	 * @return lthe {@link Flux} emitting the records one by one.
+	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
+	 */
+	default <V> Flux<ObjectRecord<K, V>> range(K key, Range<String> range, Limit limit, Class<V> targetType) {
+		return range(key, range, limit).map(it -> toObjectRecord(it, targetType));
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
-	 * @param stream the streams to read from.
+	 * @param targetType
+	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<MapRecord<K, HK, HV>> read(StreamOffset<K> stream) {
-		return read(StreamReadOptions.empty(), new StreamOffset[] { stream });
+	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, StreamOffset<K>... streams) {
+		return read(targetType, StreamReadOptions.empty(), streams);
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream.
@@ -172,19 +238,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s.
-	 *
-	 * @param readOptions read arguments.
-	 * @param stream the streams to read from.
-	 * @return list with members of the resulting stream.
-	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
-	 */
-	default Flux<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K> stream) {
-		return read(readOptions, new StreamOffset[] { stream });
-	}
-
-	/**
-	 * Read messages from one or more {@link StreamOffset}s.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
 	 * @param readOptions read arguments.
 	 * @param streams the streams to read from.
@@ -194,19 +248,22 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	Flux<MapRecord<K, HK, HV>> read(StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s.
 	 *
-	 * @param consumer consumer/group.
-	 * @param stream the streams to read from.
+	 * @oaram targetType
+	 * @param readOptions read arguments.
+	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream.
-	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
+	 * @see <a href="http://redis.io/commands/xread">Redis Documentation: XREAD</a>
 	 */
-	default Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamOffset<K> stream) {
-		return read(consumer, StreamReadOptions.empty(), new StreamOffset[] { stream });
+	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, StreamReadOptions readOptions,
+			StreamOffset<K>... streams) {
+
+		return read(readOptions, streams).map(it -> toObjectRecord(it, targetType));
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param streams the streams to read from.
@@ -218,20 +275,19 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
-	 * @param readOptions read arguments.
-	 * @param stream the streams to read from.
+	 * @param streams the streams to read from.
 	 * @return list with members of the resulting stream.
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
-	default Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K> stream) {
-		return read(consumer, readOptions, new StreamOffset[] { stream });
+	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, Consumer consumer, StreamOffset<K>... streams) {
+		return read(targetType, consumer, StreamReadOptions.empty(), streams);
 	}
 
 	/**
-	 * Read messages from one or more {@link StreamOffset}s using a consumer group.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
 	 *
 	 * @param consumer consumer/group.
 	 * @param readOptions read arguments.
@@ -242,7 +298,22 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	Flux<MapRecord<K, HK, HV>> read(Consumer consumer, StreamReadOptions readOptions, StreamOffset<K>... streams);
 
 	/**
-	 * Read messages from a stream within a specific {@link Range} in reverse order.
+	 * Read records from one or more {@link StreamOffset}s using a consumer group.
+	 *
+	 * @param targetType
+	 * @param consumer consumer/group.
+	 * @param readOptions read arguments.
+	 * @param streams the streams to read from.
+	 * @return list with members of the resulting stream.
+	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
+	 */
+	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, Consumer consumer, StreamReadOptions readOptions,
+			StreamOffset<K>... streams) {
+		return read(consumer, readOptions, streams).map(it -> toObjectRecord(it, targetType));
+	}
+
+	/**
+	 * Read records from a stream within a specific {@link Range} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -253,8 +324,12 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 		return reverseRange(key, range, Limit.unlimited());
 	}
 
+	default <V> Flux<ObjectRecord<K, V>> reverseRange(Class<V> targetType, K key, Range<String> range) {
+		return reverseRange(targetType, key, range, Limit.unlimited());
+	}
+
 	/**
-	 * Read messages from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
 	 *
 	 * @param key the stream key.
 	 * @param range must not be {@literal null}.
@@ -263,6 +338,20 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	Flux<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
+
+	/**
+	 * Read records from a stream within a specific {@link Range} applying a {@link Limit} in reverse order.
+	 *
+	 * @param targetType
+	 * @param key the stream key.
+	 * @param range must not be {@literal null}.
+	 * @param limit must not be {@literal null}.
+	 * @return list with members of the resulting stream.
+	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
+	 */
+	default <V> Flux<ObjectRecord<K, V>> reverseRange(Class<V> targetType, K key, Range<String> range, Limit limit) {
+		return reverseRange(key, range, limit).map(it -> toObjectRecord(it, targetType));
+	}
 
 	/**
 	 * Trims the stream to {@code count} elements.
@@ -295,6 +384,12 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 		if (value instanceof ObjectRecord) {
 
 			ObjectRecord entry = ((ObjectRecord) value);
+
+			// TODO: should we have this?
+			if (entry.getValue() instanceof Map) {
+				return StreamRecords.newRecord().in(value.getStream()).withId(value.getId()).ofMap((Map) entry.getValue());
+			}
+
 			return entry.toMapRecord(getHashMapper(entry.getValue().getClass()));
 		}
 

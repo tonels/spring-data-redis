@@ -405,6 +405,10 @@ public interface RedisStreamCommands {
 			return new StreamOffset<>(key, readOffset);
 		}
 
+		public static <K> StreamOffset latest(K key) {
+			return new StreamOffset(key, ReadOffset.latest());
+		}
+
 		public static <K> StreamOffset<K> of(Record<K, ?> reference) {
 			return create(reference.getStream(), ReadOffset.from(reference.getId()));
 		}
