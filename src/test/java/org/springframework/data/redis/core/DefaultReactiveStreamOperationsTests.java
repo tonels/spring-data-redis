@@ -18,8 +18,6 @@ package org.springframework.data.redis.core;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assume.*;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.test.StepVerifier;
 
 import java.util.Collection;
@@ -34,17 +32,25 @@ import org.junit.runners.Parameterized.Parameters;
 import org.springframework.data.domain.Range;
 import org.springframework.data.domain.Range.Bound;
 import org.springframework.data.redis.ConnectionFactoryTracker;
+import org.springframework.data.redis.DoubleObjectFactory;
+import org.springframework.data.redis.LongObjectFactory;
 import org.springframework.data.redis.ObjectFactory;
 import org.springframework.data.redis.PersonObjectFactory;
 import org.springframework.data.redis.RedisTestProfileValueSource;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamMessage;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.connection.StreamRecords;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 /**
@@ -54,7 +60,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
  */
 @RunWith(Parameterized.class)
 @SuppressWarnings("unchecked")
-public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
+public class DefaultReactiveStreamOperationsTests<K, HK, HV> {
 
 	private final ReactiveRedisTemplate<K, ?> redisTemplate;
 	private final ReactiveStreamOperations<K, HK, HV> streamOperations;
@@ -62,6 +68,8 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 	private final ObjectFactory<K> keyFactory;
 	private final ObjectFactory<HK> hashKeyFactory;
 	private final ObjectFactory<HV> valueFactory;
+
+	RedisSerializer<?> serializer;
 
 	@Parameters(name = "{4}")
 	public static Collection<Object[]> testParams() {
@@ -89,11 +97,20 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		// TODO: Change to 5.0 after Redis 5 GA
 		assumeTrue(RedisTestProfileValueSource.matches("redisVersion", "4.9"));
 
+		RedisSerializationContext<K, ?> context = null;
+		if (serializer != null) {
+			context = RedisSerializationContext.newSerializationContext().value(SerializationPair.fromSerializer(serializer))
+					.hashKey(keyFactory instanceof PersonObjectFactory ? RedisSerializer.java() : RedisSerializer.string())
+					.hashValue(serializer)
+					.key(keyFactory instanceof PersonObjectFactory ? RedisSerializer.java() : RedisSerializer.string()).build();
+		}
+
 		this.redisTemplate = redisTemplate;
-		this.streamOperations = redisTemplate.opsForStream();
+		this.streamOperations = serializer != null ? redisTemplate.opsForStream(context) : redisTemplate.opsForStream();
 		this.keyFactory = keyFactory;
-		this.hashKeyFactory = (ObjectFactory<HK>)keyFactory;
+		this.hashKeyFactory = (ObjectFactory<HK>) keyFactory;
 		this.valueFactory = valueFactory;
+		this.serializer = serializer;
 
 		ConnectionFactoryTracker.add(redisTemplate.getConnectionFactory());
 	}
@@ -133,9 +150,33 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 	}
 
 	@Test // DATAREDIS-864
+	public void addShouldAddReadSimpleMessage() {
+
+		assumeTrue(!(serializer instanceof Jackson2JsonRedisSerializer)
+				&& !(serializer instanceof GenericJackson2JsonRedisSerializer));
+
+		K key = keyFactory.instance();
+		HV value = valueFactory.instance();
+
+		RecordId messageId = streamOperations.add(StreamRecords.objectBacked(value).withStreamKey(key)).block();
+
+		streamOperations.range(key, Range.unbounded(), (Class<HV>) value.getClass()).as(StepVerifier::create) //
+				.consumeNextWith(it -> {
+					assertThat(it.getId()).isEqualTo(messageId);
+					assertThat(it.getStream()).isEqualTo(key);
+
+					assertThat(it.getValue()).isEqualTo(value);
+
+				}) //
+				.verifyComplete();
+	}
+
+	@Test // DATAREDIS-864
 	public void rangeShouldReportMessages() {
 
 		assumeFalse(valueFactory instanceof PersonObjectFactory);
+		assumeFalse(keyFactory instanceof LongObjectFactory);
+		assumeFalse(keyFactory instanceof DoubleObjectFactory);
 
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
@@ -145,7 +186,8 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		RecordId messageId2 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations
-				.range(key, Range.from(Bound.inclusive(messageId1.getValue())).to(Bound.inclusive(messageId2.getValue())), Limit.limit().count(1)) //
+				.range(key, Range.from(Bound.inclusive(messageId1.getValue())).to(Bound.inclusive(messageId2.getValue())),
+						Limit.limit().count(1)) //
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
 
@@ -176,6 +218,8 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 	public void readShouldReadMessage() {
 
 		assumeFalse(valueFactory instanceof PersonObjectFactory);
+		assumeFalse(keyFactory instanceof LongObjectFactory);
+		assumeFalse(keyFactory instanceof DoubleObjectFactory);
 
 		K key = keyFactory.instance();
 		HK hashKey = hashKeyFactory.instance();
@@ -192,7 +236,7 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 
 					if (!(key instanceof byte[] || value instanceof byte[])) {
 						assertThat(actual.getValue()).containsEntry(hashKey, value);
-//						assertThat(actual.getValue()).containsValue(value);
+						// assertThat(actual.getValue()).containsValue(value);
 					}
 				}).verifyComplete();
 	}
@@ -207,7 +251,7 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		HV value = valueFactory.instance();
 
 		streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
-		streamOperations.add(key, Collections.singletonMap(hashKey	, value)).block();
+		streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations.read(StreamReadOptions.empty().count(2), StreamOffset.create(key, ReadOffset.from("0-0"))) //
 				.as(StepVerifier::create) //

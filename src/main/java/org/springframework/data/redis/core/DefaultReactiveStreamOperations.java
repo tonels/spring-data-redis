@@ -15,18 +15,20 @@
  */
 package org.springframework.data.redis.core;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
+import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.ReactiveStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
@@ -36,8 +38,12 @@ import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.core.convert.RedisCustomConversions;
+import org.springframework.data.redis.hash.HashMapper;
+import org.springframework.data.redis.hash.ObjectHashMapper;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 
 /**
  * Default implementation of {@link ReactiveStreamOperations}.
@@ -46,12 +52,24 @@ import org.springframework.util.Assert;
  * @author Christoph Strobl
  * @since 2.2
  */
-@RequiredArgsConstructor
 class DefaultReactiveStreamOperations<K, HK, HV> implements ReactiveStreamOperations<K, HK, HV> {
 
-	private final @NonNull ReactiveRedisTemplate<?, ?> template;
+	private final ReactiveRedisTemplate<?, ?> template;
+	private final RedisSerializationContext<K, ?> serializationContext;
 
-	private final @NonNull RedisSerializationContext<K, ?> serializationContext;
+	private final RedisCustomConversions rcc = new RedisCustomConversions();
+	private DefaultConversionService conversionService;
+	private HashMapper<?, HK, HV> mapper;
+
+	public DefaultReactiveStreamOperations(ReactiveRedisTemplate<?, ?> template,
+			RedisSerializationContext<K, ?> serializationContext) {
+		this.template = template;
+		this.serializationContext = serializationContext;
+
+		this.conversionService = new DefaultConversionService();
+		this.mapper = mapper != null ? mapper : (HashMapper<?, HK, HV>) new ObjectHashMapper();
+		rcc.registerConvertersIn(conversionService);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -183,6 +201,68 @@ class DefaultReactiveStreamOperations<K, HK, HV> implements ReactiveStreamOperat
 		return createMono(connection -> connection.xTrim(rawKey(key), count));
 	}
 
+	@Override
+	public <V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType) {
+
+		if (rcc.isSimpleType(targetType) || ClassUtils.isAssignable(ByteBuffer.class, targetType)) {
+
+			return new HashMapper<V, HK, HV>() {
+
+				@Override
+				public Map<HK, HV> toHash(V object) {
+
+					HK key = (HK) "payload";
+					HV value = (HV) object;
+
+					if (serializationContext.getHashKeySerializationPair() == null) {
+						key = (HK) key.toString().getBytes(StandardCharsets.UTF_8);
+					}
+					if (serializationContext.getHashValueSerializationPair() == null) {
+						value = (HV) conversionService.convert(value, byte[].class);
+					}
+
+					return Collections.singletonMap(key, value);
+
+					// return (Map<HK, HV>) Collections.singletonMap("payload".getBytes(StandardCharsets.UTF_8),
+					// serializeHashValueIfRequires((HV) object));
+				}
+
+				@Override
+				public V fromHash(Map<HK, HV> hash) {
+					Object value = hash.values().iterator().next();
+					if (ClassUtils.isAssignableValue(targetType, value)) {
+						return (V) value;
+					}
+					return (V) deserializeHashValue((ByteBuffer) value);
+				}
+			};
+		}
+
+		if (mapper instanceof ObjectHashMapper) {
+
+			return new HashMapper<V, HK, HV>() {
+
+				@Override
+				public Map<HK, HV> toHash(V object) {
+					return (Map<HK, HV>) ((ObjectHashMapper) mapper).toObjectHash(object);
+				}
+
+				@Override
+				public V fromHash(Map<HK, HV> hash) {
+
+					Map<byte[], byte[]> map = hash.entrySet().stream()
+							.collect(Collectors.toMap(e -> conversionService.convert((Object) e.getKey(), byte[].class),
+									e -> conversionService.convert((Object) e.getValue(), byte[].class)));
+
+					return (V) mapper.fromHash((Map<HK, HV>) map);
+				}
+			};
+
+		}
+
+		return (HashMapper<V, HK, HV>) mapper;
+	}
+
 	@SuppressWarnings("unchecked")
 	private StreamOffset<ByteBuffer>[] rawStreamOffsets(StreamOffset<K>[] streams) {
 
@@ -209,11 +289,18 @@ class DefaultReactiveStreamOperations<K, HK, HV> implements ReactiveStreamOperat
 	}
 
 	private ByteBuffer rawHashKey(HK key) {
-		return serializationContext.getHashKeySerializationPair().write(key);
+		try {
+			return serializationContext.getHashKeySerializationPair().write(key);
+		} catch (IllegalStateException e) {}
+		return ByteBuffer.wrap(conversionService.convert(key, byte[].class));
 	}
 
 	private ByteBuffer rawValue(HV value) {
-		return serializationContext.getHashValueSerializationPair().write(value);
+
+		try {
+			return serializationContext.getHashValueSerializationPair().write(value);
+		} catch (IllegalStateException e) {}
+		return ByteBuffer.wrap(conversionService.convert(value, byte[].class));
 	}
 
 	private HK readHashKey(ByteBuffer buffer) {

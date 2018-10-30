@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
@@ -922,6 +923,13 @@ public interface RedisStreamCommands {
 		 */
 		static ByteBufferRecord of(MapRecord<ByteBuffer, ByteBuffer, ByteBuffer> source) {
 			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBuffer(source.getValue());
+		}
+
+		default <OV> ObjectRecord<ByteBuffer, OV> toObjectRecord(HashMapper<? super OV, ? super ByteBuffer, ? super ByteBuffer> mapper) {
+
+			Map<byte[], byte[]> targetMap = getValue().entrySet().stream().collect(Collectors.toMap(entry -> ByteUtils.getBytes(entry.getKey()), entry -> ByteUtils.getBytes(entry.getValue())));
+
+			return Record.<ByteBuffer, OV> of((OV) (mapper).fromHash((Map) targetMap)).withId(getId()).withStreamKey(getStream());
 		}
 	}
 

@@ -15,11 +15,15 @@
  */
 package org.springframework.data.redis.core;
 
+import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
+import org.springframework.data.redis.hash.HashMapper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
@@ -86,6 +90,10 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 
 	Mono<RecordId> add(MapRecord<K, HK, HV> record);
 
+	default <V> Mono<RecordId> add(Record<K, V> value) {
+		return add(toMapRecord(value));
+	}
+
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
 	 * number of IDs passed in case certain IDs do not exist.
@@ -136,6 +144,10 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	Flux<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
+
+	default <V> Flux<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
+		return range(key, range).map(it -> toObjectRecord(it, targetType));
+	}
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s.
@@ -261,4 +273,39 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xtrim">Redis Documentation: XTRIM</a>
 	 */
 	Mono<Long> trim(K key, long count);
+
+	/**
+	 * Get the {@link HashMapper} for a specific type.
+	 *
+	 * @param targetType must not be {@literal null}.
+	 * @param <V>
+	 * @return the {@link HashMapper} suitable for a given type;
+	 */
+	<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
+
+	/**
+	 * App
+	 *
+	 * @param value
+	 * @param <V>
+	 * @return
+	 */
+	default <V> MapRecord<K, HK, HV> toMapRecord(Record<K, V> value) {
+
+		if (value instanceof ObjectRecord) {
+
+			ObjectRecord entry = ((ObjectRecord) value);
+			return entry.toMapRecord(getHashMapper(entry.getValue().getClass()));
+		}
+
+		if (value instanceof MapRecord) {
+			return (MapRecord<K, HK, HV>) value;
+		}
+
+		return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value)).withStreamKey(value.getStream());
+	}
+
+	default <V> ObjectRecord<K, V> toObjectRecord(MapRecord<K, HK, HV> entry, Class<V> targetType) {
+		return entry.toObjectRecord(getHashMapper(targetType));
+	}
 }
