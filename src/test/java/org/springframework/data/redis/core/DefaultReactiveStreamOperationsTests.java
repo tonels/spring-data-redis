@@ -116,13 +116,13 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
 
-		String messageId = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations.range(key, Range.unbounded()) //
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
 
-					assertThat(actual.getId().getValue()).isEqualTo(messageId);
+					assertThat(actual.getId()).isEqualTo(messageId);
 					assertThat(actual.getStream()).isEqualTo(key);
 
 					if (!(key instanceof byte[] || value instanceof byte[])) {
@@ -141,15 +141,15 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
 
-		String messageId1 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
-		String messageId2 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId1 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId2 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations
-				.range(key, Range.from(Bound.inclusive(messageId1)).to(Bound.inclusive(messageId2)), Limit.limit().count(1)) //
+				.range(key, Range.from(Bound.inclusive(messageId1.getValue())).to(Bound.inclusive(messageId2.getValue())), Limit.limit().count(1)) //
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
 
-					assertThat(actual.getId().getValue()).isEqualTo(messageId1);
+					assertThat(actual.getId()).isEqualTo(messageId1);
 				}) //
 				.verifyComplete();
 	}
@@ -163,12 +163,12 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
 
-		String messageId1 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
-		String messageId2 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId1 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId2 = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations.reverseRange(key, Range.unbounded()).map(MapRecord::getId) //
 				.as(StepVerifier::create) //
-				.expectNext(RecordId.of(messageId2), RecordId.of(messageId1)) //
+				.expectNext(messageId2, messageId1) //
 				.verifyComplete();
 	}
 
@@ -181,13 +181,13 @@ public class DefaultReactiveStreamOperationsTests<K, HK,  HV> {
 		HK hashKey = hashKeyFactory.instance();
 		HV value = valueFactory.instance();
 
-		String messageId = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
+		RecordId messageId = streamOperations.add(key, Collections.singletonMap(hashKey, value)).block();
 
 		streamOperations.read(StreamOffset.create(key, ReadOffset.from("0-0"))) //
 				.as(StepVerifier::create) //
 				.consumeNextWith(actual -> {
 
-					assertThat(actual.getId().getValue()).isEqualTo(messageId);
+					assertThat(actual.getId()).isEqualTo(messageId);
 					assertThat(actual.getStream()).isEqualTo(key);
 
 					if (!(key instanceof byte[] || value instanceof byte[])) {

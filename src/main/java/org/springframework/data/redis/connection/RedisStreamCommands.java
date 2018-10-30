@@ -403,6 +403,10 @@ public interface RedisStreamCommands {
 		public static <K> StreamOffset<K> create(K key, ReadOffset readOffset) {
 			return new StreamOffset<>(key, readOffset);
 		}
+
+		public static <K> StreamOffset<K> of(Record<K, ?> reference) {
+			return create(reference.getStream(), ReadOffset.from(reference.getId()));
+		}
 	}
 
 	/**
@@ -916,9 +920,9 @@ public interface RedisStreamCommands {
 		 * @param source must not be {@literal null}.
 		 * @return new instance of {@link ByteMapRecord}.
 		 */
-//		static ByteBufferRecord of(MapRecord<ByteBuffer, ByteBuffer, ByteBuffer> source) {
-//			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBytes(source.getValue());
-//		}
+		static ByteBufferRecord of(MapRecord<ByteBuffer, ByteBuffer, ByteBuffer> source) {
+			return StreamRecords.newRecord().in(source.getStream()).withId(source.getId()).ofBuffer(source.getValue());
+		}
 	}
 
 

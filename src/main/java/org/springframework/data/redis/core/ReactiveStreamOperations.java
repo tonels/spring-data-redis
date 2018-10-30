@@ -15,23 +15,28 @@
  */
 package org.springframework.data.redis.core;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
+import org.springframework.data.redis.connection.StreamRecords;
 
 /**
  * Redis stream specific operations.
  *
  * @author Mark Paluch
+ * @author Christoph Strobl
  * @since 2.2
  */
 public interface ReactiveStreamOperations<K, HK, HV> {
@@ -41,11 +46,19 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 *
 	 * @param key the stream key.
 	 * @param group name of the consumer group.
-	 * @param messageIds message Id's to acknowledge.
+	 * @param recordIds message Id's to acknowledge.
 	 * @return length of acknowledged messages.
 	 * @see <a href="http://redis.io/commands/xack">Redis Documentation: XACK</a>
 	 */
-	Mono<Long> acknowledge(K key, String group, String... messageIds);
+	default Mono<Long> acknowledge(K key, String group, String... recordIds) {
+		return acknowledge(key, group, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
+	}
+
+	Mono<Long> acknowledge(K key, String group, RecordId... recordIds);
+
+	default Mono<Long> acknowledge(String group, Record<K, ?> record) {
+		return acknowledge(record.getStream(), group, record.getId());
+	}
 
 	/**
 	 * Append one or more message to the stream {@code key}.
@@ -55,7 +68,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @return the message Ids.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Flux<String> add(K key, Publisher<? extends Map<HK, HV>> bodyPublisher) {
+	default Flux<RecordId> add(K key, Publisher<? extends Map<HK, HV>> bodyPublisher) {
 		return Flux.from(bodyPublisher).flatMap(it -> add(key, it));
 	}
 
@@ -67,18 +80,30 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @return the message Id.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	Mono<String> add(K key, Map<HK, HV> body);
+	default Mono<RecordId> add(K key, Map<HK, HV> body) {
+		return add(StreamRecords.newRecord().in(key).ofMap(body));
+	}
+
+	Mono<RecordId> add(MapRecord<K, HK, HV> record);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
 	 * number of IDs passed in case certain IDs do not exist.
 	 *
 	 * @param key the stream key.
-	 * @param messageIds stream message Id's.
+	 * @param recordIds stream message Id's.
 	 * @return number of removed entries.
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
-	Mono<Long> delete(K key, String... messageIds);
+	default Mono<Long> delete(K key, String... recordIds) {
+		return delete(key, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
+	}
+
+	default Mono<Long> delete(Record<K, ?> record) {
+		return delete(record.getStream(), record.getId());
+	}
+
+	Mono<Long> delete(K key, RecordId... recordIds);
 
 	/**
 	 * Get the length of a stream.

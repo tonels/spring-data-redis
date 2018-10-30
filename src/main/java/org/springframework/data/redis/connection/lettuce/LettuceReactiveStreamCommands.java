@@ -96,7 +96,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveStreamCommands#xAdd(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<CommandResponse<AddStreamRecord, String>> xAdd(Publisher<AddStreamRecord> commands) {
+	public Flux<CommandResponse<AddStreamRecord, RecordId>> xAdd(Publisher<AddStreamRecord> commands) {
 
 		return connection.execute(cmd -> Flux.from(commands).concatMap(command -> {
 
@@ -108,7 +108,7 @@ class LettuceReactiveStreamCommands implements ReactiveStreamCommands {
 				args.id(command.getRecord().getId().getValue());
 			}
 
-			return cmd.xadd(command.getKey(), args, command.getBody()).map(value -> new CommandResponse<>(command, value));
+			return cmd.xadd(command.getKey(), args, command.getBody()).map(value -> new CommandResponse<>(command, RecordId.of(value)));
 		}));
 	}
 

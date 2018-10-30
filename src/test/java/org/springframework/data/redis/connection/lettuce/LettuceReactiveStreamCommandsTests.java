@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assume.*;
 
 import io.lettuce.core.XReadArgs;
+import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.test.StepVerifier;
 
 import java.util.Collections;
@@ -63,7 +64,7 @@ public class LettuceReactiveStreamCommandsTests extends LettuceReactiveCommandsT
 	@Test // DATAREDIS-864
 	public void xDelShouldRemoveMessage() {
 
-		String messageId = connection.streamCommands()
+		RecordId messageId = connection.streamCommands()
 				.xAdd(KEY_1_BBUFFER, Collections.singletonMap(KEY_2_BBUFFER, VALUE_2_BBUFFER)).block();
 
 		connection.streamCommands().xDel(KEY_1_BBUFFER, messageId) //

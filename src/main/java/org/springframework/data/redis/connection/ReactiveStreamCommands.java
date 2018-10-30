@@ -247,7 +247,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Mono<String> xAdd(ByteBuffer key, Map<ByteBuffer, ByteBuffer> body) {
+	default Mono<RecordId> xAdd(ByteBuffer key, Map<ByteBuffer, ByteBuffer> body) {
 
 		Assert.notNull(key, "Key must not be null!");
 		Assert.notNull(body, "Body must not be null!");
@@ -262,7 +262,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Mono<String> xAdd(ByteBufferRecord record) {
+	default Mono<RecordId> xAdd(ByteBufferRecord record) {
 
 		Assert.notNull(record, "Record must not be null!");
 
@@ -276,7 +276,7 @@ public interface ReactiveStreamCommands {
 	 * @return
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	Flux<CommandResponse<AddStreamRecord, String>> xAdd(Publisher<AddStreamRecord> commands);
+	Flux<CommandResponse<AddStreamRecord, RecordId>> xAdd(Publisher<AddStreamRecord> commands);
 
 	/**
 	 * {@code XDEL} command parameters.
