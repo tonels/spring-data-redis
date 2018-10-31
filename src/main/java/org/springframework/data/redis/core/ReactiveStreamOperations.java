@@ -15,6 +15,7 @@
  */
 package org.springframework.data.redis.core;
 
+import org.springframework.lang.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
@@ -156,6 +158,45 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	Mono<Long> delete(K key, RecordId... recordIds);
+
+	/**
+	 * Create a consumer group at the {@link ReadOffset#latest() latest offset}.
+	 *
+	 * @param key
+	 * @param group name of the consumer group.
+	 * @return the {@link Mono} emitting {@literal ok} if successful.. {@literal null} when used in pipeline / transaction.
+	 */
+	default Mono<String> createGroup(K key, String group) {
+		return createGroup(key, ReadOffset.latest(), group);
+	}
+
+	/**
+	 * Create a consumer group.
+	 *
+	 * @param key
+	 * @param readOffset
+	 * @param group name of the consumer group.
+	 * @return the {@link Mono} emitting {@literal ok} if successful.
+	 */
+	Mono<String> createGroup(K key, ReadOffset readOffset, String group);
+
+	/**
+	 * Delete a consumer from a consumer group.
+	 *
+	 * @param key the stream key.
+	 * @param consumer consumer identified by group name and consumer key.
+	 * @return the {@link Mono} {@literal ok} if successful. {@literal null} when used in pipeline / transaction.
+	 */
+	Mono<String> deleteConsumer(K key, Consumer consumer);
+
+	/**
+	 * Destroy a consumer group.
+	 *
+	 * @param key the stream key.
+	 * @param group name of the consumer group.
+	 * @return the {@link Mono} {@literal ok} if successful. {@literal null} when used in pipeline / transaction.
+	 */
+	Mono<String> destroyGroup(K key, String group);
 
 	/**
 	 * Get the length of a stream.

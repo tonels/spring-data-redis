@@ -90,10 +90,10 @@ class DefaultStreamOperations<K, HK, HV> extends AbstractOperations<K, Object> i
 	 * @see org.springframework.data.redis.core.StreamOperations#delete(java.lang.Object, java.lang.String[])
 	 */
 	@Override
-	public Long delete(K key, String... messageIds) {
+	public Long delete(K key, RecordId... recordIds) {
 
 		byte[] rawKey = rawKey(key);
-		return execute(connection -> connection.xDel(rawKey, messageIds), true);
+		return execute(connection -> connection.xDel(rawKey, recordIds), true);
 	}
 
 	/*

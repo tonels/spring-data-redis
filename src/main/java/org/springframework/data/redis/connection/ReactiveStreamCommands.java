@@ -32,6 +32,7 @@ import org.springframework.data.redis.connection.ReactiveRedisConnection.KeyComm
 import org.springframework.data.redis.connection.ReactiveRedisConnection.NumericResponse;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
+import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
@@ -691,6 +692,119 @@ public interface ReactiveStreamCommands {
 	 * @see <a href="http://redis.io/commands/xreadgroup">Redis Documentation: XREADGROUP</a>
 	 */
 	Flux<CommandResponse<ReadCommand, Flux<ByteBufferRecord>>> read(Publisher<ReadCommand> commands);
+
+	class GroupCommand extends KeyCommand {
+
+		final @Nullable GroupCommandAction action;
+		final @Nullable String groupName;
+		final @Nullable String consumerName;
+		final @Nullable ReadOffset offset;
+
+		public GroupCommand(@Nullable ByteBuffer key, @Nullable GroupCommandAction action, @Nullable String groupName,
+				@Nullable String consumerName, ReadOffset offset) {
+
+			super(key);
+			this.action = action;
+			this.groupName = groupName;
+			this.consumerName = consumerName;
+			this.offset = offset;
+		}
+
+		public static GroupCommand createGroup(String group) {
+			return new GroupCommand(null, GroupCommandAction.CREATE, group, null, ReadOffset.latest());
+		}
+
+		public static GroupCommand destroyGroup(String group) {
+			return new GroupCommand(null, GroupCommandAction.DESTROY, group, null, null);
+		}
+
+		public static GroupCommand deleteConsumer(String consumerName) {
+			return new GroupCommand(null, GroupCommandAction.DELETE_CONSUMER, null, consumerName, null);
+		}
+
+		public static GroupCommand deleteConsumer(Consumer consumer) {
+			return new GroupCommand(null, GroupCommandAction.DELETE_CONSUMER, consumer.getGroup(), consumer.getName(), null);
+		}
+
+		public GroupCommand at(ReadOffset offset) {
+			return new GroupCommand(getKey(), action, groupName, consumerName, offset);
+		}
+
+		public GroupCommand forStream(ByteBuffer key) {
+			return new GroupCommand(key, action, groupName, consumerName, offset);
+		}
+
+		public GroupCommand fromGroup(String groupName) {
+			return new GroupCommand(getKey(), action, groupName, consumerName, offset);
+		}
+
+		@Nullable
+		public ReadOffset getReadOffset() {
+			return this.offset;
+		}
+
+		@Nullable
+		public String getGroupName() {
+			return groupName;
+		}
+
+		@Nullable
+		public String getConsumerName() {
+			return consumerName;
+		}
+
+		@Nullable
+		public GroupCommandAction getAction() {
+			return action;
+		}
+
+		public enum GroupCommandAction {
+			CREATE, SET_ID, DESTROY, DELETE_CONSUMER;
+		}
+	}
+
+	/**
+	 * @param key
+	 * @param group
+	 * @param readOffset
+	 * @return
+	 */
+	default Mono<String> xGroupCreate(ByteBuffer key, String group, ReadOffset readOffset) {
+
+		return xGroup(Mono.just(GroupCommand.createGroup(group).forStream(key).at(readOffset))).next()
+				.map(CommandResponse::getOutput);
+	}
+
+	/**
+	 *
+	 * @param key
+	 * @param consumer
+	 * @return
+	 */
+	default Mono<String> xGroupDelConsumer(ByteBuffer key, Consumer consumer) {
+
+		return xGroup(Mono.just(GroupCommand.deleteConsumer(consumer).forStream(key))).next()
+				.map(CommandResponse::getOutput);
+	}
+
+	/**
+	 * Destroy a consumer group.
+	 *
+	 * @param key the {@literal key} the stream is stored at.
+	 * @param groupName name of the consumer group.
+	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
+	 */
+	@Nullable
+	default Mono<String> xGroupDestroy(ByteBuffer key, String groupName) {
+		return xGroup(Mono.just(GroupCommand.destroyGroup(groupName).forStream(key))).next()
+				.map(CommandResponse::getOutput);
+	}
+
+	/**
+	 * @param commands
+	 * @return
+	 */
+	Flux<CommandResponse<GroupCommand, String>> xGroup(Publisher<GroupCommand> commands);
 
 	/**
 	 * Read messages from one or more {@link StreamOffset}s using a consumer group.

@@ -34,6 +34,7 @@ import org.springframework.data.redis.connection.ReactiveStreamCommands;
 import org.springframework.data.redis.connection.RedisStreamCommands.ByteBufferRecord;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
+import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
@@ -110,6 +111,34 @@ class DefaultReactiveStreamOperations<K, HK, HV> implements ReactiveStreamOperat
 		Assert.notNull(recordIds, "MessageIds must not be null!");
 
 		return createMono(connection -> connection.xDel(rawKey(key), recordIds));
+	}
+
+	@Override
+	public Mono<String> createGroup(K key, ReadOffset readOffset, String group) {
+
+		Assert.notNull(key, "Key must not be null!");
+		Assert.notNull(readOffset, "ReadOffset must not be null!");
+		Assert.notNull(group, "Group must not be null!");
+
+		return createMono(connection -> connection.xGroupCreate(rawKey(key), group, readOffset));
+	}
+
+	@Override
+	public Mono<String> deleteConsumer(K key, Consumer consumer) {
+
+		Assert.notNull(key, "Key must not be null!");
+		Assert.notNull(consumer, "Consumer must not be null!");
+
+		return createMono(connection -> connection.xGroupDelConsumer(rawKey(key), consumer));
+	}
+
+	@Override
+	public Mono<String> destroyGroup(K key, String group) {
+
+		Assert.notNull(key, "Key must not be null!");
+		Assert.notNull(group, "Group must not be null!");
+
+		return createMono(connection -> connection.xGroupDestroy(rawKey(key), group));
 	}
 
 	/*

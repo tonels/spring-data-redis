@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assume.*;
 
 import io.lettuce.core.XReadArgs;
+import org.junit.Ignore;
 import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
 import reactor.test.StepVerifier;
 
@@ -171,4 +172,44 @@ public class LettuceReactiveStreamCommandsTests extends LettuceReactiveCommandsT
 				}) //
 				.verifyComplete();
 	}
+
+	@Test // DATAREDIS-864
+	public void xGroupCreateShouldCreateGroup() {
+
+		nativeCommands.xadd(KEY_1, Collections.singletonMap(KEY_2, VALUE_2));
+
+		connection.streamCommands().xGroupCreate(KEY_1_BBUFFER, "group-1", ReadOffset.latest()) //
+		.as(StepVerifier::create) //
+		.expectNext("OK") //
+		.verifyComplete();
+	}
+
+	@Test // DATAREDIS-864
+	@Ignore("commands sent correctly - however lettuce returns false")
+	public void xGroupDelConsumerShouldRemoveConsumer() {
+
+		String id = nativeCommands.xadd(KEY_1, Collections.singletonMap(KEY_2, VALUE_2));
+		nativeCommands.xgroupCreate(XReadArgs.StreamOffset.from(KEY_1, id), "group-1");
+		nativeCommands.xreadgroup(io.lettuce.core.Consumer.from("group-1", "consumer-1"), XReadArgs.StreamOffset.from(KEY_1, id));
+
+		connection.streamCommands().xGroupDelConsumer(KEY_1_BBUFFER, Consumer.from("group-1", "consumer-1"))
+				.as(StepVerifier::create) //
+				.expectNext("OK") //
+				.verifyComplete();
+	}
+
+	@Test // DATAREDIS-864
+	public void xGroupDestroyShouldDestroyGroup() {
+
+		String id = nativeCommands.xadd(KEY_1, Collections.singletonMap(KEY_2, VALUE_2));
+		nativeCommands.xgroupCreate(XReadArgs.StreamOffset.from(KEY_1, id), "group-1");
+
+		connection.streamCommands().xGroupDestroy(KEY_1_BBUFFER, "group-1")
+				.as(StepVerifier::create) //
+				.expectNext("OK") //
+				.verifyComplete();
+	}
+
+
+
 }

@@ -15,6 +15,8 @@
  */
 package org.springframework.data.redis.core;
 
+import reactor.core.publisher.Mono;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -104,8 +106,15 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	RecordId add(MapRecord<K, HK, HV> record);
 
-	default <V> RecordId add(Record<K, V> value) {
-		return add(toMapRecord(value));
+	/**
+	 * Append the record, backed by the given value, to the stream. The value will be hashed and serialized.
+	 *
+	 * @param record must not be {@literal null}.
+	 * @param <V>
+	 * @return
+	 */
+	default <V> RecordId add(Record<K, V> record) {
+		return add(toMapRecord(record));
 	}
 
 	/**
@@ -118,7 +127,43 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
 	 */
 	@Nullable
-	Long delete(K key, String... recordIds);
+	default Long delete(K key, String... recordIds) {
+		return delete(key, Arrays.stream(recordIds).map(RecordId::of).toArray(RecordId[]::new));
+	}
+
+	/**
+	 * Removes a given {@link Record} from the stream.
+	 *
+	 * @param record must not be {@literal null}.
+	 * @return he {@link Mono} emitting the number of removed records.
+	 */
+	@Nullable
+	default Long delete(Record<K, ?> record) {
+		return delete(record.getStream(), record.getId());
+	}
+
+	/**
+	 * Removes the specified records from the stream. Returns the number of records deleted, that may be different from
+	 * the number of IDs passed in case certain IDs do not exist.
+	 *
+	 * @param key the stream key.
+	 * @param recordIds stream record Id's.
+	 * @return the {@link Mono} emitting the number of removed records.
+	 * @see <a href="http://redis.io/commands/xdel">Redis Documentation: XDEL</a>
+	 */
+	@Nullable
+	Long delete(K key, RecordId... recordIds);
+
+	/**
+	 * Create a consumer group at the {@link ReadOffset#latest() latest offset}.
+	 *
+	 * @param key
+	 * @param group name of the consumer group.
+	 * @return {@literal ok} if successful. {@literal null} when used in pipeline / transaction.
+	 */
+	default String createGroup(K key, String group) {
+		return createGroup(key, ReadOffset.latest(), group);
+	}
 
 	/**
 	 * Create a consumer group.
@@ -126,7 +171,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @param key
 	 * @param readOffset
 	 * @param group name of the consumer group.
-	 * @return {@literal true} if successful. {@literal null} when used in pipeline / transaction.
+	 * @return {@literal ok} if successful. {@literal null} when used in pipeline / transaction.
 	 */
 	@Nullable
 	String createGroup(K key, ReadOffset readOffset, String group);
