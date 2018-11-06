@@ -28,6 +28,7 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
 import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
+import org.springframework.data.redis.connection.RedisStreamCommands.Record;
 import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -41,9 +42,9 @@ import org.springframework.util.ErrorHandler;
  * implemented externally.
  * <p/>
  * Once created, a {@link StreamMessageListenerContainer} can subscribe to a Redis Stream and consume incoming
- * {@link Record messages}. {@link StreamMessageListenerContainer} allows multiple stream read requests and
- * returns a {@link Subscription} handle per read request. Cancelling the {@link Subscription} terminates eventually
- * background polling. Messages are converted using {@link RedisSerializer key and value serializers} to support various
+ * {@link Record messages}. {@link StreamMessageListenerContainer} allows multiple stream read requests and returns a
+ * {@link Subscription} handle per read request. Cancelling the {@link Subscription} terminates eventually background
+ * polling. Messages are converted using {@link RedisSerializer key and value serializers} to support various
  * serialization strategies. <br/>
  * {@link StreamMessageListenerContainer} supports multiple modes of stream consumption:
  * <ul>
@@ -83,9 +84,9 @@ import org.springframework.util.ErrorHandler;
  * {@link StreamListener#onMessage(Record) listener callback}.
  * <p/>
  * {@link StreamMessageListenerContainer} tasks propagate errors during stream reads and
- * {@link StreamListener#onMessage(Record) listener notification} to a configurable {@link ErrorHandler}. Errors
- * stop a {@link Subscription} by default. Configuring a {@link Predicate} for a {@link StreamReadRequest} allows
- * conditional subscription cancelling or continuing on all errors.
+ * {@link StreamListener#onMessage(Record) listener notification} to a configurable {@link ErrorHandler}. Errors stop a
+ * {@link Subscription} by default. Configuring a {@link Predicate} for a {@link StreamReadRequest} allows conditional
+ * subscription cancelling or continuing on all errors.
  * <p/>
  * See the following example code how to use {@link StreamMessageListenerContainer}:
  *
@@ -93,7 +94,7 @@ import org.springframework.util.ErrorHandler;
  * RedisConnectionFactory factory = …;
  *
  * StreamMessageListenerContainer<String, String> container = StreamMessageListenerContainer.create(factory);
- * Subscription subscription = container.receive(StreamOffset.create("my-stream", ReadOffset.from("0-0")), message -> …);
+ * Subscription subscription = container.receive(StreamOffset.fromStart("my-stream"), message -> …);
  *
  * container.start();
  *

@@ -62,6 +62,7 @@ class DefaultStreamReceiver<K, HK, HV> implements StreamReceiver<K, HK, HV> {
 	 * @param connectionFactory must not be {@literal null}.
 	 * @param options must not be {@literal null}.
 	 */
+	@SuppressWarnings("unchecked")
 	DefaultStreamReceiver(ReactiveRedisConnectionFactory connectionFactory, StreamReceiverOptions<K, HK, HV> options) {
 
 		RedisSerializationContext<HK, HV> serializationContext = RedisSerializationContext
@@ -84,6 +85,7 @@ class DefaultStreamReceiver<K, HK, HV> implements StreamReceiver<K, HK, HV> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receive(org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Flux<MapRecord<K, HK, HV>> receive(StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {
@@ -105,6 +107,7 @@ class DefaultStreamReceiver<K, HK, HV> implements StreamReceiver<K, HK, HV> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receiveAutoAck(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Flux<MapRecord<K, HK, HV>> receiveAutoAck(Consumer consumer, StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {
@@ -126,6 +129,7 @@ class DefaultStreamReceiver<K, HK, HV> implements StreamReceiver<K, HK, HV> {
 	 * @see org.springframework.data.redis.stream.StreamReceiver#receive(org.springframework.data.redis.connection.RedisStreamCommands.Consumer, org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset)
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	public Flux<MapRecord<K, HK, HV>> receive(Consumer consumer, StreamOffset<K> streamOffset) {
 
 		if (logger.isDebugEnabled()) {

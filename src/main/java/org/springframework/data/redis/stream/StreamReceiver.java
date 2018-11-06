@@ -32,10 +32,11 @@ import org.springframework.util.Assert;
 /**
  * A receiver to consume Redis Streams using reactive infrastructure.
  * <p/>
- * Once created, a {@link StreamReceiver} can subscribe to a Redis Stream and consume incoming {@link org.springframework.data.redis.connection.RedisStreamCommands.Record
- * messages}. Consider a {@link Flux} of {@link Record} infinite. Cancelling the
- * {@link org.reactivestreams.Subscription} terminates eventually background polling. Messages are converted using
- * {@link SerializationPair key and value serializers} to support various serialization strategies. <br/>
+ * Once created, a {@link StreamReceiver} can subscribe to a Redis Stream and consume incoming
+ * {@link org.springframework.data.redis.connection.RedisStreamCommands.Record messages}. Consider a {@link Flux} of
+ * {@link Record} infinite. Cancelling the {@link org.reactivestreams.Subscription} terminates eventually background
+ * polling. Messages are converted using {@link SerializationPair key and value serializers} to support various
+ * serialization strategies. <br/>
  * {@link StreamReceiver} supports three modes of stream consumption:
  * <ul>
  * <li>Standalone</li>
@@ -75,8 +76,8 @@ import org.springframework.util.Assert;
  * <pre class="code">
  * ReactiveRedisConnectionFactory factory = …;
  *
- * StreamReceiver<String, String> receiver = StreamReceiver.create(factory);
- * Flux<StreamMessage<String, String>> messages = receiver.receive(StreamOffset.create("my-stream", ReadOffset.from("0-0")));
+ * StreamReceiver<String, String, String> receiver = StreamReceiver.create(factory);
+ * Flux<MapRecord<String, String, String>> messages = receiver.receive(StreamOffset.fromStart("my-stream"));
  *
  * messageFlux.doOnNext(message -> …);
  * </pre>

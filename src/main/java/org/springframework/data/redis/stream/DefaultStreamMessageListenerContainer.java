@@ -193,6 +193,7 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 		return doRegister(getReadTask(streamRequest, listener));
 	}
 
+	@SuppressWarnings("unchecked")
 	private StreamPollTask<K, V> getReadTask(StreamReadRequest<K> streamRequest, StreamListener<K, V> listener) {
 
 		StreamOperations<K, ?, ?> streamOperations = template.opsForStream();
@@ -208,10 +209,6 @@ class DefaultStreamMessageListenerContainer<K, V> implements StreamMessageListen
 
 				return (List<Record<K, V>>) (List) streamOperations.read(consumer, readOptions,
 						StreamOffset.create(key, offset));
-				// List<StreamMessage<K, V>> x = (List<StreamMessage<K, V>>)(List) streamOperations.read(consumer, readOptions,
-				// StreamOffset.create(key, offset));
-				// return x;
-
 			});
 		}
 
