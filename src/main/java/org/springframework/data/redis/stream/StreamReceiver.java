@@ -15,16 +15,17 @@
  */
 package org.springframework.data.redis.stream;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
 import reactor.core.publisher.Flux;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
 
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.Record;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.util.Assert;
@@ -32,11 +33,10 @@ import org.springframework.util.Assert;
 /**
  * A receiver to consume Redis Streams using reactive infrastructure.
  * <p/>
- * Once created, a {@link StreamReceiver} can subscribe to a Redis Stream and consume incoming
- * {@link org.springframework.data.redis.connection.RedisStreamCommands.Record messages}. Consider a {@link Flux} of
- * {@link Record} infinite. Cancelling the {@link org.reactivestreams.Subscription} terminates eventually background
- * polling. Messages are converted using {@link SerializationPair key and value serializers} to support various
- * serialization strategies. <br/>
+ * Once created, a {@link StreamReceiver} can subscribe to a Redis Stream and consume incoming {@link Record messages}.
+ * Consider a {@link Flux} of {@link Record} infinite. Cancelling the {@link org.reactivestreams.Subscription}
+ * terminates eventually background polling. Messages are converted using {@link SerializationPair key and value
+ * serializers} to support various serialization strategies. <br/>
  * {@link StreamReceiver} supports three modes of stream consumption:
  * <ul>
  * <li>Standalone</li>
@@ -183,7 +183,7 @@ public interface StreamReceiver<K, HK, HV> {
 		private final int batchSize;
 		private final SerializationPair<K> keySerializer;
 		private final SerializationPair<HK> bodySerializer;
-		private final SerializationPair<HV> vaueSerializer;
+		private final SerializationPair<HV> valueSerializer;
 
 		private StreamReceiverOptions(Duration pollTimeout, int batchSize, SerializationPair<K> keySerializer,
 				SerializationPair<HK> bodySerializer, SerializationPair<HV> valueSerializer) {
@@ -191,7 +191,7 @@ public interface StreamReceiver<K, HK, HV> {
 			this.batchSize = batchSize;
 			this.keySerializer = keySerializer;
 			this.bodySerializer = bodySerializer;
-			this.vaueSerializer = valueSerializer;
+			this.valueSerializer = valueSerializer;
 		}
 
 		/**
@@ -309,7 +309,7 @@ public interface StreamReceiver<K, HK, HV> {
 		public <NV> StreamReceiverOptionsBuilder<K, HK, HV> bodySerializer(SerializationPair<NV> pair) {
 
 			this.bodySerializer = (SerializationPair) pair;
-			return (StreamReceiverOptionsBuilder) this;
+			return this;
 		}
 
 		/**

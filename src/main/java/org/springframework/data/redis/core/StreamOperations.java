@@ -23,16 +23,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.Record;
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
-import org.springframework.data.redis.connection.StreamRecords;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ObjectRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.Record;
+import org.springframework.data.redis.connection.stream.RecordId;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
+import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.hash.HashMapper;
 import org.springframework.lang.Nullable;
 
@@ -43,7 +43,7 @@ import org.springframework.lang.Nullable;
  * @author Christoph Strobl
  * @since 2.2
  */
-public interface StreamOperations<K, HK, HV> {
+public interface StreamOperations<K, HK, HV> extends HashMapperProvider<HK, HV> {
 
 	/**
 	 * Acknowledge one or more records as processed.
@@ -91,8 +91,9 @@ public interface StreamOperations<K, HK, HV> {
 	 * @return the record Id. {@literal null} when used in pipeline / transaction.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
+	@SuppressWarnings("unchecked")
 	@Nullable
-	default RecordId add(K key, Map<HK, HV> content) {
+	default RecordId add(K key, Map<? extends HK, ? extends HV> content) {
 		return add(StreamRecords.newRecord().in(key).ofMap(content));
 	}
 
@@ -104,18 +105,22 @@ public interface StreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
 	@Nullable
-	RecordId add(MapRecord<K, HK, HV> record);
+	default RecordId add(MapRecord<K, ? extends HK, ? extends HV> record) {
+		return add((Record) record);
+	}
 
 	/**
 	 * Append the record, backed by the given value, to the stream. The value will be hashed and serialized.
 	 *
 	 * @param record must not be {@literal null}.
 	 * @param <V>
-	 * @return
+	 * @return the record Id. {@literal null} when used in pipeline / transaction.
+	 * @see MapRecord
+	 * @see ObjectRecord
 	 */
-	default <V> RecordId add(Record<K, V> record) {
-		return add(toMapRecord(record));
-	}
+	@SuppressWarnings("unchecked")
+	@Nullable
+	RecordId add(Record<K, ?> record);
 
 	/**
 	 * Removes the specified entries from the stream. Returns the number of items deleted, that may be different from the
@@ -232,7 +237,8 @@ public interface StreamOperations<K, HK, HV> {
 	List<MapRecord<K, HK, HV>> range(K key, Range<String> range, Limit limit);
 
 	default <V> List<ObjectRecord<K, V>> range(K key, Range<String> range, Class<V> targetType) {
-		return range(key, range).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
+		return range(key, range).stream().map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType))
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -306,7 +312,8 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	default <V> List<ObjectRecord<K, V>> read(Class<V> targetType, StreamReadOptions readOptions,
 			StreamOffset<K>... streams) {
-		return read(readOptions, streams).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
+		return read(readOptions, streams).stream().map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType))
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -388,7 +395,8 @@ public interface StreamOperations<K, HK, HV> {
 	@Nullable
 	default <V> List<ObjectRecord<K, V>> read(Class<V> targetType, Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<K>... streams) {
-		return read(consumer, readOptions, streams).stream().map(it -> toObjectRecord(it, targetType))
+		return read(consumer, readOptions, streams).stream()
+				.map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType))
 				.collect(Collectors.toList());
 	}
 
@@ -418,7 +426,8 @@ public interface StreamOperations<K, HK, HV> {
 	List<MapRecord<K, HK, HV>> reverseRange(K key, Range<String> range, Limit limit);
 
 	default <V> List<ObjectRecord<K, V>> reverseRange(K key, Range<String> range, Class<V> targetType) {
-		return reverseRange(key, range).stream().map(it -> toObjectRecord(it, targetType)).collect(Collectors.toList());
+		return reverseRange(key, range).stream().map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType))
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -439,31 +448,7 @@ public interface StreamOperations<K, HK, HV> {
 	 * @param <V>
 	 * @return the {@link HashMapper} suitable for a given type;
 	 */
+	@Override
 	<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
 
-	/**
-	 * App
-	 * 
-	 * @param value
-	 * @param <V>
-	 * @return
-	 */
-	default <V> MapRecord<K, HK, HV> toMapRecord(Record<K, V> value) {
-
-		if (value instanceof ObjectRecord) {
-
-			ObjectRecord entry = ((ObjectRecord) value);
-			return entry.toMapRecord(getHashMapper(entry.getValue().getClass()));
-		}
-
-		if (value instanceof MapRecord) {
-			return (MapRecord<K, HK, HV>) value;
-		}
-
-		return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value)).withStreamKey(value.getStream());
-	}
-
-	default <V> ObjectRecord<K, V> toObjectRecord(MapRecord<K, HK, HV> entry, Class<V> targetType) {
-		return entry.toObjectRecord(getHashMapper(targetType));
-	}
 }

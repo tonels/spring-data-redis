@@ -35,14 +35,14 @@ import org.springframework.data.redis.SettingsUtils;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.Record;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceTestClientResources;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.Record;
+import org.springframework.data.redis.connection.stream.RecordId;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamReadRequest;
@@ -59,8 +59,8 @@ public class StreamMessageListenerContainerIntegrationTests {
 
 	private static RedisConnectionFactory connectionFactory;
 
-	StringRedisTemplate redisTemplate = new StringRedisTemplate(connectionFactory);
-	StreamMessageListenerContainerOptions<String, Map<String,String>> containerOptions = StreamMessageListenerContainerOptions
+	private StringRedisTemplate redisTemplate = new StringRedisTemplate(connectionFactory);
+	private StreamMessageListenerContainerOptions<String, Map<String, String>> containerOptions = StreamMessageListenerContainerOptions
 			.builder().pollTimeout(Duration.ofMillis(100)).build();
 
 	@BeforeClass
@@ -79,8 +79,7 @@ public class StreamMessageListenerContainerIntegrationTests {
 
 		connectionFactory = lettuceConnectionFactory;
 
-		// TODO: Upgrade to 5.0
-		assumeTrue(RedisVersionUtils.atLeast("4.9", connectionFactory.getConnection()));
+		assumeTrue(RedisVersionUtils.atLeast("5.0", connectionFactory.getConnection()));
 	}
 
 	@AfterClass

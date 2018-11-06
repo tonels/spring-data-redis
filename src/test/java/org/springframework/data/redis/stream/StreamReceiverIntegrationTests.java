@@ -34,10 +34,10 @@ import org.springframework.data.redis.RedisVersionUtils;
 import org.springframework.data.redis.SettingsUtils;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceTestClientResources;
@@ -73,7 +73,6 @@ public class StreamReceiverIntegrationTests {
 
 		connectionFactory = lettuceConnectionFactory;
 
-		// TODO: Upgrade to 5.0
 		assumeTrue(RedisVersionUtils.atLeast("5.0", connectionFactory.getConnection()));
 	}
 

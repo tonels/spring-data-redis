@@ -23,16 +23,16 @@ import java.util.Map;
 
 import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.RedisStreamCommands.Consumer;
-import org.springframework.data.redis.connection.RedisStreamCommands.MapRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.ObjectRecord;
-import org.springframework.data.redis.connection.RedisStreamCommands.ReadOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.Record;
-import org.springframework.data.redis.connection.RedisStreamCommands.RecordId;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamOffset;
-import org.springframework.data.redis.connection.RedisStreamCommands.StreamReadOptions;
 import org.springframework.data.redis.connection.RedisZSetCommands.Limit;
-import org.springframework.data.redis.connection.StreamRecords;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ObjectRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.Record;
+import org.springframework.data.redis.connection.stream.RecordId;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
+import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.hash.HashMapper;
 
 /**
@@ -42,7 +42,7 @@ import org.springframework.data.redis.hash.HashMapper;
  * @author Christoph Strobl
  * @since 2.2
  */
-public interface ReactiveStreamOperations<K, HK, HV> {
+public interface ReactiveStreamOperations<K, HK, HV> extends HashMapperProvider<HK, HV> {
 
 	/**
 	 * Acknowledge one or more records as processed.
@@ -88,7 +88,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @return the record Ids.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Flux<RecordId> add(K key, Publisher<? extends Map<HK, HV>> bodyPublisher) {
+	default Flux<RecordId> add(K key, Publisher<? extends Map<? extends HK, ? extends HV>> bodyPublisher) {
 		return Flux.from(bodyPublisher).flatMap(it -> add(key, it));
 	}
 
@@ -100,7 +100,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @return the {@link Mono} emitting the {@link RecordId}.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	default Mono<RecordId> add(K key, Map<HK, HV> body) {
+	default Mono<RecordId> add(K key, Map<? extends HK, ? extends HV> body) {
 		return add(StreamRecords.newRecord().in(key).ofMap(body));
 	}
 
@@ -111,18 +111,20 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @return the {@link Mono} emitting the {@link RecordId}.
 	 * @see <a href="http://redis.io/commands/xadd">Redis Documentation: XADD</a>
 	 */
-	Mono<RecordId> add(MapRecord<K, HK, HV> record);
+	@SuppressWarnings("unchecked")
+	default Mono<RecordId> add(MapRecord<K, ? extends HK, ? extends HV> record) {
+		return add((Record) record);
+	}
 
 	/**
 	 * Append the record, backed by the given value, to the stream. The value will be hashed and serialized.
 	 *
 	 * @param record must not be {@literal null}.
-	 * @param <V>
-	 * @return
+	 * @return the {@link Mono} emitting the {@link RecordId}.
+	 * @see MapRecord
+	 * @see ObjectRecord
 	 */
-	default <V> Mono<RecordId> add(Record<K, V> record) {
-		return add(toMapRecord(record));
-	}
+	Mono<RecordId> add(Record<K, ?> record);
 
 	/**
 	 * Removes the specified records from the stream. Returns the number of records deleted, that may be different from
@@ -252,7 +254,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrange">Redis Documentation: XRANGE</a>
 	 */
 	default <V> Flux<ObjectRecord<K, V>> range(K key, Range<String> range, Limit limit, Class<V> targetType) {
-		return range(key, range, limit).map(it -> toObjectRecord(it, targetType));
+		return range(key, range, limit).map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType));
 	}
 
 	/**
@@ -300,7 +302,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, StreamReadOptions readOptions,
 			StreamOffset<K>... streams) {
 
-		return read(readOptions, streams).map(it -> toObjectRecord(it, targetType));
+		return read(readOptions, streams).map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType));
 	}
 
 	/**
@@ -350,7 +352,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 */
 	default <V> Flux<ObjectRecord<K, V>> read(Class<V> targetType, Consumer consumer, StreamReadOptions readOptions,
 			StreamOffset<K>... streams) {
-		return read(consumer, readOptions, streams).map(it -> toObjectRecord(it, targetType));
+		return read(consumer, readOptions, streams).map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType));
 	}
 
 	/**
@@ -391,7 +393,7 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @see <a href="http://redis.io/commands/xrevrange">Redis Documentation: XREVRANGE</a>
 	 */
 	default <V> Flux<ObjectRecord<K, V>> reverseRange(Class<V> targetType, K key, Range<String> range, Limit limit) {
-		return reverseRange(key, range, limit).map(it -> toObjectRecord(it, targetType));
+		return reverseRange(key, range, limit).map(it -> StreamObjectMapper.toObjectRecord(this, it, targetType));
 	}
 
 	/**
@@ -411,37 +413,6 @@ public interface ReactiveStreamOperations<K, HK, HV> {
 	 * @param <V>
 	 * @return the {@link HashMapper} suitable for a given type;
 	 */
+	@Override
 	<V> HashMapper<V, HK, HV> getHashMapper(Class<V> targetType);
-
-	/**
-	 * App
-	 *
-	 * @param value
-	 * @param <V>
-	 * @return
-	 */
-	default <V> MapRecord<K, HK, HV> toMapRecord(Record<K, V> value) {
-
-		if (value instanceof ObjectRecord) {
-
-			ObjectRecord entry = ((ObjectRecord) value);
-
-			// TODO: should we have this?
-			if (entry.getValue() instanceof Map) {
-				return StreamRecords.newRecord().in(value.getStream()).withId(value.getId()).ofMap((Map) entry.getValue());
-			}
-
-			return entry.toMapRecord(getHashMapper(entry.getValue().getClass()));
-		}
-
-		if (value instanceof MapRecord) {
-			return (MapRecord<K, HK, HV>) value;
-		}
-
-		return Record.of(((HashMapper) getHashMapper(value.getClass())).toHash(value)).withStreamKey(value.getStream());
-	}
-
-	default <V> ObjectRecord<K, V> toObjectRecord(MapRecord<K, HK, HV> entry, Class<V> targetType) {
-		return entry.toObjectRecord(getHashMapper(targetType));
-	}
 }

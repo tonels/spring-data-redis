@@ -15,7 +15,7 @@
  */
 package org.springframework.data.redis.stream;
 
-import org.springframework.data.redis.connection.RedisStreamCommands.Record;
+import org.springframework.data.redis.connection.stream.Record;
 
 /**
  * Listener interface to receive delivery of {@link Record messages}.

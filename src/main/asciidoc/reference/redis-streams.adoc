@@ -231,7 +231,7 @@ List<ObjectRecord<String, String>> records = redisTemplate()
 
 Adding a complex value to the stream can be done in 3 ways:
 
-. Convert to simple value using eg. a String Json representation.
+. Convert to simple value using eg. a String JSON representation.
 . Serialize the value with a suitable `RedisSerializer`.
 . Convert the value into a `Map` suitable for serialization using a `HashMapper`.
 
@@ -255,8 +255,8 @@ List<ObjectRecord<String, User>> records = redisTemplate()
 ----
 <1> XADD user-logon * "_class" "com.example.User" "firstname" "night" "lastname" "angel"
 
-By default `StreamOperations` use an <<redis.repositories.mapping, ObjectHashMapper>>.
-You may provide the `HashMapper` suitable for your requirements when obtaining `StreamOperations`.
+`StreamOperations` use by default <<redis.repositories.mapping, ObjectHashMapper>>.
+You may provide a `HashMapper` suitable for your requirements when obtaining `StreamOperations`.
 
 [source,java]
 ----
