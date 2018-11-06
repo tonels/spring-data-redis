@@ -47,34 +47,35 @@ public class StreamOffset<K> {
 	/**
 	 * Create a {@link StreamOffset} given {@code key} and {@link ReadOffset}.
 	 *
-	 * @param key the stream key.
+	 * @param stream the stream key.
 	 * @param readOffset the {@link ReadOffset} to use.
 	 * @return new instance of {@link StreamOffset}.
 	 */
-	public static <K> StreamOffset<K> create(K key, ReadOffset readOffset) {
-		return new StreamOffset<>(key, readOffset);
+	public static <K> StreamOffset<K> create(K stream, ReadOffset readOffset) {
+		return new StreamOffset<>(stream, readOffset);
 	}
 
 	/**
 	 * Create a {@link StreamOffset} given {@code key} starting at {@link ReadOffset#latest()}.
 	 *
-	 * @param key he stream key.
+	 * @param stream the stream key.
 	 * @param <K>
 	 * @return new instance of {@link StreamOffset}.
 	 */
-	public static <K> StreamOffset<K> latest(K key) {
-		return new StreamOffset<>(key, ReadOffset.latest());
+	public static <K> StreamOffset<K> latest(K stream) {
+		return new StreamOffset<>(stream, ReadOffset.latest());
 	}
 
 	/**
-	 * Create a {@link StreamOffset} given {@code key} starting at {@link ReadOffset#from(String) ReadOffset#from("0-0")}.
+	 * Create a {@link StreamOffset} given {@code stream} starting at {@link ReadOffset#from(String)
+	 * ReadOffset#from("0-0")}.
 	 *
-	 * @param key he stream key.
+	 * @param stream the stream key.
 	 * @param <K>
 	 * @return new instance of {@link StreamOffset}.
 	 */
-	public static <K> StreamOffset<K> fromStart(K key) {
-		return new StreamOffset<>(key, ReadOffset.from("0-0"));
+	public static <K> StreamOffset<K> fromStart(K stream) {
+		return new StreamOffset<>(stream, ReadOffset.from("0-0"));
 	}
 
 	/**

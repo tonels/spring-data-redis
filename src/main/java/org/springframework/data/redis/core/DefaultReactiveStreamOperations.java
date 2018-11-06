@@ -95,7 +95,14 @@ class DefaultReactiveStreamOperations<K, HK, HV> implements ReactiveStreamOperat
 							if (ClassUtils.isAssignableValue(targetType, value)) {
 								return value;
 							}
-							return deserializeHashValue((ByteBuffer) value);
+
+							HV deserialized = deserializeHashValue((ByteBuffer) value);
+
+							if (ClassUtils.isAssignableValue(targetType, deserialized)) {
+								return value;
+							}
+
+							return conversionService.convert(deserialized, targetType);
 						}
 					};
 				}

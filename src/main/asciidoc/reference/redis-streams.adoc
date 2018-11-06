@@ -136,12 +136,12 @@ Reactive consumption of streaming data sources typically happens through a `Flux
 
 [source,java]
 ----
-Flux<StreamMessage<String, String>> messages = …
+Flux<MapRecord<String, String, String>> messages = …
 
 return messages.doOnNext(it -> {
     System.out.println("MessageId: " + message.getId());
     System.out.println("Stream: " + message.getStream());
-    System.out.println("Body: " + message.getBody());
+    System.out.println("Body: " + message.getValue());
 });
 ----
 
@@ -151,11 +151,11 @@ Now we need to create the `StreamReceiver` and register a subscription to consum
 ----
 ReactiveRedisConnectionFactory connectionFactory = …
 
-StreamReceiverOptions<String, String> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
+StreamReceiverOptions<String, MapRecord<String, String, String>> options = StreamReceiverOptions.builder().pollTimeout(Duration.ofMillis(100))
 				.build();
-StreamReceiver<String, String> receiver = StreamReceiver.create(connectionFactory, options);
+StreamReceiver<String, MapRecord<String, String, String>> receiver = StreamReceiver.create(connectionFactory, options);
 				
-Flux<StreamMessage<String, String>> messages = receiver.receive(StreamOffset.fromStart("my-stream"));
+Flux<MapRecord<String, String, String>> messages = receiver.receive(StreamOffset.fromStart("my-stream"));
 ----
 
 Please refer to the Javadoc of the various message listener containers for a full description of the features supported by each implementation.
@@ -238,6 +238,8 @@ Adding a complex value to the stream can be done in 3 ways:
 The first variant is the most straight forward one but neglects the field value capabilities offered by the stream structure, still the values in the stream will be readable for other consumers.
 The 2nd option holds the same benefits as the first one, but may lead to a very specific consumer limitations as the all consumers must implement the very same serialization mechanism.
 The `HashMapper` approach is the a bit more complex one making use of the steams hash structure, but flattening the source. Still other consumers remain able to read the records as long as suitable serializer combinations are chosen.
+
+NOTE: HashMappers convert the payload to a `Map` with specific types. Make sure to use Hash-Key and Hash-Value serializers that are capable of (de-)serializing the hash.
 
 [source,java]
 ----

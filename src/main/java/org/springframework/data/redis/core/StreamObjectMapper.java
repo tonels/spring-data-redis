@@ -69,7 +69,7 @@ class StreamObjectMapper {
 
 				@Override
 				public Map<Object, Object> toHash(Object object) {
-					return (Map) ohm.toObjectHash(object);
+					return (Map) ohm.toHash(object);
 				}
 
 				@Override
